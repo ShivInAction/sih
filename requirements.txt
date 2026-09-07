@@ -1,0 +1,8 @@
+streamlit>=1.30.0
+pandas>=2.0.0
+deep-translator>=1.11.0
+langdetect>=1.0.9
+sentence-transformers>=2.2.0
+faster-whisper>=0.10.0
+av>=11.0.0
+SpeechRecognition>=3.10.0
