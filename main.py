@@ -27,6 +27,7 @@ from src.ui.views import (
     render_sidebar,
     render_hero,
     render_tabs,
+    render_visibility_fix,
 )
 from src.ui.pipeline import generate_response
 
@@ -124,3 +125,6 @@ if final_query:
         if len(st.session_state.history) > MAX_HISTORY_LENGTH:
             st.session_state.history = st.session_state.history[-MAX_HISTORY_LENGTH:]
         st.markdown(response, unsafe_allow_html=True)
+
+# 10. Global Visibility Enhancements
+render_visibility_fix()

@@ -24,4 +24,5 @@ from src.ui.views import (
     render_sidebar,
     render_hero,
     render_tabs,
+    render_visibility_fix,
 )

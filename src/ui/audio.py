@@ -74,19 +74,22 @@ def _mic_component(lang_code: str):
   }
   var injTimer = setInterval(function(){ injectMic(); if (injected) clearInterval(injTimer); }, 400);
 
-  var listening = false, rec = null, ft = '';
+  var listening = false, rec = null, ft = '', delivered = false;
 
   function deliver(t) {
     try {
       var ta = host.querySelector('[data-testid="stChatInput"] textarea');
-      if (!ta) return;
-      Object.getOwnPropertyDescriptor(win.HTMLTextAreaElement.prototype, 'value').set.call(ta, t);
+      if (!ta) return false;
+      try { Object.getOwnPropertyDescriptor(win.HTMLTextAreaElement.prototype, 'value').set.call(ta, t); }
+      catch(e1) { ta.value = t; }
       ta.dispatchEvent(new Event('input', { bubbles: true }));
+      ta.dispatchEvent(new Event('change', { bubbles: true }));
       setTimeout(function(){
         var sendBtn = host.querySelector('[data-testid="stChatInputSubmitButton"]');
         if (sendBtn) sendBtn.click();
-      }, 200);
-    } catch (e) {}
+      }, 400);
+      return true;
+    } catch (e) { return false; }
   }
 
   btn.onclick = function (e) {
@@ -111,6 +114,7 @@ def _mic_component(lang_code: str):
       btn.classList.remove('listening');
       btn.innerHTML = '\U0001F399\uFE0F';
       bubble.classList.remove('show');
+      if (!delivered && ft.trim()) { delivered = true; deliver(ft.trim()); }
     };
 
     rec.onresult = function (ev) {
@@ -127,6 +131,7 @@ def _mic_component(lang_code: str):
         bubble.style.right  = (win.innerWidth - inpRect.right + 16) + 'px';
       }
       if (ft.trim()) {
+        delivered = true;
         deliver(ft.trim());
         rec.stop();
       }
@@ -137,6 +142,7 @@ def _mic_component(lang_code: str):
       btn.classList.remove('listening');
       btn.innerHTML = '\U0001F399\uFE0F';
       bubble.classList.remove('show');
+      if (!delivered && ft.trim()) { delivered = true; deliver(ft.trim()); }
     };
 
     rec.start();

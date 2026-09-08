@@ -315,6 +315,27 @@ CUSTOM_CSS = """
   .th-record-date { font-size: 0.75rem; color: #64748B; font-weight: 600; }
   .th-record-title { font-size: 0.95rem; font-weight: 700; color: #0F172A; margin: 4px 0; }
   .th-record-body { font-size: 0.86rem; color: #475569; line-height: 1.5; }
+
+  /* GLOBAL FIX: Force all sidebar text visible */
+  [data-testid="stSidebar"] p,
+  [data-testid="stSidebar"] span,
+  [data-testid="stSidebar"] small,
+  [data-testid="stSidebar"] label,
+  [data-testid="stSidebar"] div[data-testid="stCaptionContainer"],
+  [data-testid="stSidebar"] .stCaption p {
+    color: #475569 !important;
+    -webkit-text-fill-color: #475569 !important;
+  }
+
+  /* GLOBAL FIX: Force all radio button text visible everywhere */
+  div[data-testid="stRadio"] label p,
+  div[data-testid="stRadio"] label span,
+  div[data-testid="stRadio"] [role="radiogroup"] label p,
+  div[data-testid="stRadio"] [role="radiogroup"] label span {
+    color: #0F172A !important;
+    -webkit-text-fill-color: #0F172A !important;
+    opacity: 1 !important;
+  }
 </style>
 """
 

@@ -71,11 +71,26 @@ def build_structured_response(row, entities, care_level, response_lang, alternat
     care_label = care_labels.get(care_level, care_labels[CARE_ROUTINE_PHC])
     cl = care_label[0] if response_lang == "en" else (care_label[1] if response_lang == "hi" else care_label[2])
 
+    # Build symptoms text from entities
+    symptom_list = entities.get("symptoms", [])
+    symptom_text = ", ".join(symptom_list) if symptom_list else ""
+
     parts = []
-    parts.append(f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:0.88rem;"><strong>{cl}</strong></div>')
+
+    # Show disease name prominently
+    disease_name = html.escape(disease)
+    parts.append(f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:0.88rem;"><strong>{cl}</strong> — {disease_name}</div>')
 
     desc_label = "YOU DESCRIBED" if response_lang == "en" else ("आपने बताया" if response_lang == "hi" else "तुम्ही साँगिता")
-    desc_text = context_str if context_str else ("symptoms described" if response_lang == "en" else ("बताए गए लक्षण" if response_lang == "hi" else "साँगिलेले लक्षणे"))
+    # Show actual symptoms from the query, not generic placeholder
+    if context_str and symptom_text:
+        desc_text = f"{context_str} — {symptom_text}"
+    elif symptom_text:
+        desc_text = symptom_text
+    elif context_str:
+        desc_text = context_str
+    else:
+        desc_text = "symptoms described" if response_lang == "en" else ("बताए गए लक्षण" if response_lang == "hi" else "साँगिलेले लक्षणे")
     parts.append(f'<div style="margin-bottom:8px;"><strong style="color:#475569;font-size:0.82rem;">{desc_label}:</strong> <span style="color:#0F172A;">{html.escape(desc_text)}</span></div>')
 
     gen_label = "GENERAL AWARENESS" if response_lang == "en" else ("सामान्य जानकारी" if response_lang == "hi" else "सामान्य माहिती")

@@ -50,7 +50,22 @@ def render_sidebar():
 
         st.markdown(f'<div class="th-sb-title">{_ui("sb_lang")}</div>', unsafe_allow_html=True)
         language = st.radio("Choose language", LANGUAGES, index=0, label_visibility="collapsed")
-        if language.startswith("🌐"): st.caption(_ui("sb_auto"))
+        if language.startswith("🌐"):
+            st.markdown(f'<p style="font-size:0.82rem;color:#475569;margin-top:4px;">{_ui("sb_auto")}</p>', unsafe_allow_html=True)
+            st.markdown("""<script>
+            setTimeout(function(){
+                var sb = document.querySelector('[data-testid="stSidebar"]');
+                if(!sb) return;
+                sb.querySelectorAll('p, span, small, label').forEach(function(el){
+                    var cs = window.getComputedStyle(el);
+                    if(cs.color === 'rgb(255, 255, 255)' || cs.color === 'rgba(0, 0, 0, 0)' || parseFloat(cs.opacity) < 0.5){
+                        el.style.color = '#475569';
+                        el.style.webkitTextFillColor = '#475569';
+                        el.style.opacity = '1';
+                    }
+                });
+            }, 500);
+            </script>""", unsafe_allow_html=True)
         st.session_state["_ui_lang"] = "hi" if language == MODE_HINDI else "mr" if language == MODE_MARATHI else "en"
 
         st.markdown("""<div class="th-sb-divider"></div><div class="th-sb-title">""" + _ui("sb_emerg") + """</div>
@@ -204,6 +219,18 @@ def render_tabs(language):
 
     # ── TAB 4: MATERNAL & CHILD HEALTH ──
     with tab_mch:
+        # FIX: Force radio button text visible
+        st.markdown("""<style>
+        div[data-testid="stRadio"] label p,
+        div[data-testid="stRadio"] label span,
+        div[data-testid="stRadio"] [role="radiogroup"] label,
+        div[data-testid="stRadio"] [role="radiogroup"] label p,
+        div[data-testid="stRadio"] [role="radiogroup"] label span {
+            color: #0F172A !important;
+            -webkit-text-fill-color: #0F172A !important;
+            opacity: 1 !important;
+        }
+        </style>""", unsafe_allow_html=True)
         # MCH selector
         _mch_lang = st.session_state.get("_ui_lang", "en")
         mch_mode = st.radio(
@@ -297,3 +324,33 @@ def render_tabs(language):
             for item in FEATURE_ROADMAP:
                 status_class = "th-status-live" if item["status"] == "LIVE" else "th-status-beta" if item["status"] == "BETA" else "th-status-demo" if item["status"] == "DEMO" else "th-status-info" if item["status"] == "INFO" else "th-status-soon"
                 st.markdown(f"""<div class="th-roadmap-item"><span class="th-roadmap-phase {item['phase_class']}">{item['phase']}</span><div style="flex:1;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><strong style="color:#0F172A;font-size:0.95rem;">{item['title']}</strong><span class="th-feat-status {status_class}">{item['status']}</span></div><p style="font-size:0.85rem;color:#475569;margin:0;line-height:1.5;">{item['desc']}</p></div></div>""", unsafe_allow_html=True)
+def render_visibility_fix():
+    """Injects JavaScript to force any low-contrast or hidden dynamic text in sidebar and radio buttons to remain visible."""
+    import streamlit.components.v1 as components
+    components.html("""<script>
+    function fixVisibility() {
+        var sb = parent.document.querySelector('[data-testid="stSidebar"]');
+        if(sb) {
+            sb.querySelectorAll('p, span, small, label, div').forEach(function(el){
+                var cs = parent.window.getComputedStyle(el);
+                if(cs.color === 'rgb(255, 255, 255)' || cs.color === 'rgba(0, 0, 0, 0)' || parseFloat(cs.opacity) < 0.3){
+                    el.style.setProperty('color', '#475569', 'important');
+                    el.style.setProperty('-webkit-text-fill-color', '#475569', 'important');
+                    el.style.setProperty('opacity', '1', 'important');
+                }
+            });
+        }
+        parent.document.querySelectorAll('[data-testid="stRadio"] label p, [data-testid="stRadio"] label span').forEach(function(el){
+            el.style.setProperty('color', '#0F172A', 'important');
+            el.style.setProperty('-webkit-text-fill-color', '#0F172A', 'important');
+            el.style.setProperty('opacity', '1', 'important');
+        });
+    }
+    fixVisibility();
+    var fixInterval = setInterval(fixVisibility, 300);
+    setTimeout(function(){ clearInterval(fixInterval); }, 5000);
+    try {
+        var observer = new MutationObserver(function(){ setTimeout(fixVisibility, 100); });
+        observer.observe(parent.document.body, { childList: true, subtree: true });
+    } catch(e) {}
+    </script>""", height=0)
