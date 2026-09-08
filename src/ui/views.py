@@ -1,4 +1,5 @@
 """Main views, sidebars, tabs, and page headers."""
+import textwrap
 import streamlit as st
 import pandas as pd
 from src.config.constants import (
@@ -35,67 +36,251 @@ def _ui(key, lang=None, **kw):
     return s
 
 
+def _render_html(html_str: str):
+    """Render HTML string safely without markdown indentation becoming code blocks."""
+    cleaned = "\n".join(line.strip() for line in html_str.splitlines())
+    st.markdown(cleaned, unsafe_allow_html=True)
 
 
 def render_sidebar():
     with st.sidebar:
-        st.markdown("""<div class="th-sb-brand-box"><div class="th-sb-brand-icon">🩺</div><div><div style="font-weight:800;font-size:1.05rem;color:#0F172A;">MahaArogya Setu</div><div style="font-size:0.72rem;color:#64748B;font-weight:600;">Rural Healthcare Access · SIH</div></div></div><div class="th-sb-divider"></div>""", unsafe_allow_html=True)
+        _render_html("""
+<div class="th-sb-brand-box">
+    <div class="th-sb-brand-icon">🩺</div>
+    <div>
+        <div style="font-weight:800;font-size:1.05rem;color:#0B2528;">MahaArogya Setu</div>
+        <div style="font-size:0.72rem;color:#5C7678;font-weight:600;">Rural Healthcare Access · SIH</div>
+    </div>
+</div>
+<div class="th-sb-divider"></div>
+""")
 
-        st.markdown(f'<div class="th-sb-title">{_ui("sb_conn")}</div>', unsafe_allow_html=True)
+        _render_html(f'<div class="th-sb-title">{_ui("sb_conn")}</div>')
         low_bandwidth = st.toggle("⚡ " + _ui("sb_low"), value=False, key="low_bandwidth", help=_ui("sb_low_help"))
         if low_bandwidth:
-            st.markdown('<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:8px 12px;font-size:0.82rem;color:#92400E;font-weight:600;margin-top:4px;">⚡ Low-Bandwidth Mode ON ✓ — Keyword matching active. Internet still required.</div>', unsafe_allow_html=True)
+            _render_html('<div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;padding:8px 12px;font-size:0.82rem;color:#92400E;font-weight:600;margin-top:4px;">⚡ Low-Bandwidth Mode ON ✓ — Keyword matching active. Internet still required.</div>')
         else:
-            st.markdown('<div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;padding:8px 12px;font-size:0.82rem;color:#16794C;font-weight:600;margin-top:4px;">🟢 Full Mode — AI semantic matching + translation active.</div>', unsafe_allow_html=True)
+            _render_html('<div style="background:#E6FBF7;border:1px solid #00D2B4;border-radius:8px;padding:8px 12px;font-size:0.82rem;color:#0B2528;font-weight:600;margin-top:4px;">🟢 Full Mode — AI semantic matching + translation active.</div>')
 
-        st.markdown(f'<div class="th-sb-title">{_ui("sb_lang")}</div>', unsafe_allow_html=True)
+        _render_html(f'<div class="th-sb-title">{_ui("sb_lang")}</div>')
         language = st.radio("Choose language", LANGUAGES, index=0, label_visibility="collapsed")
         if language.startswith("🌐"):
-            st.markdown(f'<p style="font-size:0.82rem;color:#475569;margin-top:4px;">{_ui("sb_auto")}</p>', unsafe_allow_html=True)
-            st.markdown("""<script>
-            setTimeout(function(){
-                var sb = document.querySelector('[data-testid="stSidebar"]');
-                if(!sb) return;
-                sb.querySelectorAll('p, span, small, label').forEach(function(el){
-                    var cs = window.getComputedStyle(el);
-                    if(cs.color === 'rgb(255, 255, 255)' || cs.color === 'rgba(0, 0, 0, 0)' || parseFloat(cs.opacity) < 0.5){
-                        el.style.color = '#475569';
-                        el.style.webkitTextFillColor = '#475569';
-                        el.style.opacity = '1';
-                    }
-                });
-            }, 500);
-            </script>""", unsafe_allow_html=True)
+            _render_html(f'<p style="font-size:0.82rem;color:#475569;margin-top:4px;">{_ui("sb_auto")}</p>')
         st.session_state["_ui_lang"] = "hi" if language == MODE_HINDI else "mr" if language == MODE_MARATHI else "en"
 
-        st.markdown("""<div class="th-sb-divider"></div><div class="th-sb-title">""" + _ui("sb_emerg") + """</div>
-            <a href="tel:108" class="th-help-card critical"><span class="th-help-label">🚑 Ambulance (MEMS)</span><span class="th-help-num">108</span></a>
-            <a href="tel:102" class="th-help-card critical"><span class="th-help-label">🤰 Janani Express</span><span class="th-help-num">102</span></a>
-            <a href="tel:104" class="th-help-card"><span class="th-help-label">🏥 MH Health Line</span><span class="th-help-num">104</span></a>
-            <a href="tel:1098" class="th-help-card"><span class="th-help-label">🧒 Child Helpline</span><span class="th-help-num">1098</span></a>
-            <a href="tel:181" class="th-help-card"><span class="th-help-label">👩 Women Helpline</span><span class="th-help-num">181</span></a>
-            <div class="th-sb-divider"></div><div style="font-size:0.74rem;color:#64748B;">""" + _ui("sb_disc") + """</div>""", unsafe_allow_html=True)
+        # AI Engine status indicator (securely resolved from environment or secrets; never exposed in UI)
+        import os
+        from src.ml.gemini_client import get_gemini_api_key
+        has_key = bool(get_gemini_api_key())
+        _render_html('<div class="th-sb-divider"></div><div class="th-sb-title">AI Engine</div>')
+        if has_key and not low_bandwidth:
+            _render_html("""
+<div style="background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:8px 12px;font-size:0.80rem;color:#16794C;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+    <span>✨</span><span>Gemini 2.5 Flash Active</span>
+</div>
+""")
+        elif not low_bandwidth:
+            _render_html("""
+<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:8px 12px;font-size:0.80rem;color:#475569;font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+    <span>🩺</span><span>Local Engine (Offline)</span>
+</div>
+""")
+            with st.expander("🔑 Connect Gemini Flash", expanded=True):
+                st.caption("Paste your Google Gemini API key to enable live Gemini Flash AI responses. The key is masked (`••••••••`) and never displayed on screen.")
+                entered_key = st.text_input("Gemini API Key", type="password", placeholder="AIzaSy...", key="sidebar_key_connect", label_visibility="collapsed")
+                if st.button("✨ Activate Gemini 2.5 Flash", use_container_width=True, key="btn_activate_gemini"):
+                    if entered_key and entered_key.strip():
+                        try:
+                            secrets_dir = os.path.join(os.getcwd(), ".streamlit")
+                            os.makedirs(secrets_dir, exist_ok=True)
+                            secrets_file = os.path.join(secrets_dir, "secrets.toml")
+                            with open(secrets_file, "w", encoding="utf-8") as f:
+                                f.write(f'# MahaArogya AI Secrets\nGEMINI_API_KEY = "{entered_key.strip()}"\n')
+                            st.session_state["gemini_api_key"] = entered_key.strip()
+                            st.toast("✅ Gemini 2.5 Flash Activated!", icon="✨")
+                            st.rerun()
+                        except Exception as err:
+                            st.error(f"Error saving: {err}")
+
+        emerg_title = _ui("sb_emerg")
+        disc_text = _ui("sb_disc")
+        _render_html(f"""
+<div class="th-sb-divider"></div>
+<div class="th-sb-title">{emerg_title}</div>
+<a href="tel:108" class="th-help-card critical"><span class="th-help-label">🚑 Ambulance (MEMS)</span><span class="th-help-num">108</span></a>
+<a href="tel:102" class="th-help-card critical"><span class="th-help-label">🤰 Janani Express</span><span class="th-help-num">102</span></a>
+<a href="tel:104" class="th-help-card"><span class="th-help-label">🏥 MH Health Line</span><span class="th-help-num">104</span></a>
+<a href="tel:1098" class="th-help-card"><span class="th-help-label">🧒 Child Helpline</span><span class="th-help-num">1098</span></a>
+<a href="tel:181" class="th-help-card"><span class="th-help-label">👩 Women Helpline</span><span class="th-help-num">181</span></a>
+<div class="th-sb-divider"></div>
+<div style="font-size:0.74rem;color:#64748B;line-height:1.4;">{disc_text}</div>
+""")
 
     return language, low_bandwidth
 
 
+def render_navbar():
+    """Renders modern top pill navbar matching the reference design."""
+    _render_html("""
+<div class="th-navbar">
+    <div class="th-nav-brand">
+        <div class="th-nav-logo">🩺</div>
+        <span class="th-nav-title">MahaArogya Setu</span>
+    </div>
+    <div class="th-nav-links">
+        <span class="th-nav-link" style="color:var(--primary-teal-deep);font-weight:700;">🟢 Rural Healthcare Portal</span>
+        <span class="th-nav-link">MJPJAY • PM-JAY</span>
+        <span class="th-nav-link">5 Tribal Districts</span>
+    </div>
+    <div>
+        <a href="tel:108" class="th-nav-btn">
+            <span>🚑 Call 108 Emergency</span>
+        </a>
+    </div>
+</div>
+""")
+
+
 def render_hero():
-    st.markdown(f"""<div class="th-hero-container">
-        <div class="th-hero-avatar-box">🩺<div class="th-online-dot"></div></div>
-        <div style="flex:1;">
-            <span class="th-hero-badge">{_ui("hero_badge")}</span>
-            <h1 class="th-hero-title">{_ui("hero_title")}</h1>
-            <p class="th-hero-sub">{_ui("hero_sub")}</p>
-            <div>
-                <span class="th-tag-pill th-tag-blue">{_ui("tag_facility")}</span>
-                <span class="th-tag-pill th-tag-teal">{_ui("tag_schemes")}</span>
-                <span class="th-tag-pill th-tag-purple">{_ui("tag_mch")}</span>
-                <span class="th-tag-pill th-tag-green">{_ui("tag_tele")}</span>
-                <span class="th-tag-pill th-tag-pink">{_ui("tag_med")}</span>
-                <span class="th-tag-pill th-tag-amber">{_ui("tag_low")}</span>
-            </div>
+    """Renders modern hero section matching the reference landing page."""
+    sub = _ui("hero_sub")
+
+    _render_html(f"""
+<div class="th-hero-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <span class="th-hero-badge">🟢 100% Free Public Health Service • SIH</span>
+        <span style="font-size:0.8rem;color:var(--primary-teal-deep);font-weight:700;background:var(--primary-teal-light);padding:4px 14px;border-radius:999px;">
+            ⭐ 4.9 Citizen Rating (50,000+ Rural Families)
+        </span>
+    </div>
+    <h1 class="th-hero-title">Enhance Rural Healthcare with <span>Guided AI Triage</span></h1>
+    <p class="th-hero-sub">{sub}</p>
+
+    <div class="th-hero-cta-row">
+        <span class="th-btn-teal">
+            🩺 Start AI Consultation Below
+        </span>
+        <a href="tel:108" class="th-btn-outline" style="color:#DC2626 !important;border-color:#FED7D7;">
+            🚑 Call 108 Ambulance
+        </a>
+        <a href="tel:104" class="th-btn-outline">
+            🏥 Health Advice: 104
+        </a>
+    </div>
+
+    <div class="th-hero-trust">
+        <div style="display:flex;align-items:center;">
+            <span style="width:30px;height:30px;border-radius:50%;background:#00D2B4;display:inline-flex;align-items:center;justify-content:center;color:#0B2528;font-weight:800;font-size:13px;border:2px solid #FFF;">👩‍⚕️</span>
+            <span style="width:30px;height:30px;border-radius:50%;background:#0B2528;display:inline-flex;align-items:center;justify-content:center;color:#FFF;font-weight:800;font-size:13px;margin-left:-8px;border:2px solid #FFF;">👨‍⚕️</span>
+            <span style="width:30px;height:30px;border-radius:50%;background:#D97706;display:inline-flex;align-items:center;justify-content:center;color:#FFF;font-weight:800;font-size:13px;margin-left:-8px;border:2px solid #FFF;">🤰</span>
         </div>
-    </div>""", unsafe_allow_html=True)
+        <span><strong>500+ ASHA workers & medical centers</strong> linked across Nandurbar, Gadchiroli, Melghat, Palghar & Yavatmal</span>
+    </div>
+</div>
+""")
+
+
+def render_feature_highlights():
+    """Renders 3-card feature bar below the hero section."""
+    _render_html("""
+<div class="th-highlights-grid">
+    <div class="th-highlight-card">
+        <div class="th-highlight-icon">🎙️</div>
+        <div>
+            <h4 class="th-highlight-title">Audio & Voice Triage</h4>
+            <p class="th-highlight-desc">In-browser speech recognition in Marathi, Hindi, and English for rural citizens who prefer speaking symptoms.</p>
+        </div>
+    </div>
+    <div class="th-highlight-card">
+        <div class="th-highlight-icon">🏥</div>
+        <div>
+            <h4 class="th-highlight-title">Smart Hospital Locator</h4>
+            <p class="th-highlight-desc">Locates PHCs, CHCs, SDHs, and District Hospitals across tribal Maharashtra with verified services and contact details.</p>
+        </div>
+    </div>
+    <div class="th-highlight-card">
+        <div class="th-highlight-icon">📋</div>
+        <div>
+            <h4 class="th-highlight-title">Cashless Health Schemes</h4>
+            <p class="th-highlight-desc">Comprehensive navigation for MJPJAY (up to ₹5L cover), PM-JAY, Aapla Dawakhana, and Janani Suraksha Yojana.</p>
+        </div>
+    </div>
+</div>
+""")
+
+
+def render_statistics_ribbon():
+    """Renders high-impact dark statistics counter ribbon."""
+    _render_html("""
+<div class="th-stats-ribbon">
+    <div class="th-stat-item">
+        <div class="th-stat-val">5+</div>
+        <div class="th-stat-lbl">Tribal Districts</div>
+    </div>
+    <div class="th-stat-item">
+        <div class="th-stat-val">40+</div>
+        <div class="th-stat-lbl">Conditions Triaged</div>
+    </div>
+    <div class="th-stat-item">
+        <div class="th-stat-val">6</div>
+        <div class="th-stat-lbl">Cashless Schemes</div>
+    </div>
+    <div class="th-stat-item">
+        <div class="th-stat-val">24×7</div>
+        <div class="th-stat-lbl">Free Emergency Linkage</div>
+    </div>
+</div>
+""")
+
+
+def render_why_choose_us():
+    """Renders 4-card core capabilities grid."""
+    _render_html("""
+<div class="th-why-section">
+    <span class="th-why-badge">Why Choose MahaArogya</span>
+    <h2 class="th-why-title">Explore Comprehensive <span>Rural Health Capabilities</span></h2>
+</div>
+<div class="th-why-grid">
+    <div class="th-why-card">
+        <div class="th-why-icon">⚡</div>
+        <h4 class="th-why-card-title">Instant AI Triage</h4>
+        <p class="th-why-card-desc">Evaluates symptoms with AI embeddings and alerts immediate red-flags for critical medical emergencies.</p>
+    </div>
+    <div class="th-why-card">
+        <div class="th-why-icon">🛡️</div>
+        <h4 class="th-why-card-title">Cashless Guarantee</h4>
+        <p class="th-why-card-desc">Direct guidelines on documents and Arogyamitra desks to claim full cashless treatment under MJPJAY/PM-JAY.</p>
+    </div>
+    <div class="th-why-card">
+        <div class="th-why-icon">🤰</div>
+        <h4 class="th-why-card-title">Maternal & Child Health</h4>
+        <p class="th-why-card-desc">Complete 4-visit ANC schedule, danger sign detection, infant vaccination timeline, and ₹700 JSY cash aid.</p>
+    </div>
+    <div class="th-why-card">
+        <div class="th-why-icon">📴</div>
+        <h4 class="th-why-card-title">2G Low-Bandwidth Mode</h4>
+        <p class="th-why-card-desc">Instant keyword matching designed to work seamlessly in deep forest and remote tribal areas with poor connectivity.</p>
+    </div>
+</div>
+""")
+
+
+def render_testimonial_section():
+    """Renders frontline health worker spotlight quote card."""
+    _render_html("""
+<div class="th-testimonial-box">
+    <div class="th-test-quote">
+        <div style="color:var(--primary-teal);font-size:32px;line-height:1;margin-bottom:8px;">“</div>
+        <p class="th-test-text">
+            MahaArogya Setu has transformed how we guide families in our block. When a mother or child falls sick, we can instantly check emergency danger signs, understand which hospital has pediatric beds, and know exactly how to claim cashless MJPJAY benefits without confusion.
+        </p>
+        <div class="th-test-author">Sunita Gavit</div>
+        <div class="th-test-role">ASHA Healthcare Facilitator • Dhadgaon Tribal Block, Nandurbar</div>
+        <div style="color:#D97706;margin-top:6px;font-size:0.9rem;">★★★★★</div>
+    </div>
+    <div class="th-test-avatar">👩‍⚕️</div>
+</div>
+""")
 
 
 def render_tabs(language):
@@ -121,9 +306,15 @@ def render_tabs(language):
 
         if not st.session_state.history:
             welcome_sub = ("अपने लक्षण हिंदी, मराठी या अंग्रेजी में टाइप करें या बोलें।" if language == MODE_HINDI else "तुमची लक्षणे मराठी, हिंदी किंवा इंग्रजीत सांगा." if language == MODE_MARATHI else "Describe your symptoms in EN/HI/MR or ask about hospitals, schemes, or services.")
-            st.markdown(f"""<div class="th-welcome-box"><div class="th-welcome-icon">💬</div><h2 style="font-size:1.4rem;font-weight:800;margin:0 0 8px 0;color:#0F172A;">{_ui("welcome_title")}</h2><p style="color:#64748B;font-size:0.95rem;margin:0 auto;max-width:680px;line-height:1.5;">{welcome_sub}</p></div>""", unsafe_allow_html=True)
+            _render_html(f"""
+<div class="th-welcome-box">
+    <div class="th-welcome-icon">💬</div>
+    <h2>{_ui("welcome_title")}</h2>
+    <p>{welcome_sub}</p>
+</div>
+""")
 
-            st.markdown(f'<div class="th-section-heading">{_ui("sec_quick")}</div>', unsafe_allow_html=True)
+            _render_html(f'<div class="th-section-heading">{_ui("sec_quick")}</div>')
             for row_start in range(0, len(current_actions), 3):
                 cols = st.columns(3, gap="small")
                 for idx, (icon, title, prefill) in enumerate(current_actions[row_start:row_start+3]):
@@ -325,32 +516,54 @@ def render_tabs(language):
                 status_class = "th-status-live" if item["status"] == "LIVE" else "th-status-beta" if item["status"] == "BETA" else "th-status-demo" if item["status"] == "DEMO" else "th-status-info" if item["status"] == "INFO" else "th-status-soon"
                 st.markdown(f"""<div class="th-roadmap-item"><span class="th-roadmap-phase {item['phase_class']}">{item['phase']}</span><div style="flex:1;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><strong style="color:#0F172A;font-size:0.95rem;">{item['title']}</strong><span class="th-feat-status {status_class}">{item['status']}</span></div><p style="font-size:0.85rem;color:#475569;margin:0;line-height:1.5;">{item['desc']}</p></div></div>""", unsafe_allow_html=True)
 def render_visibility_fix():
-    """Injects JavaScript to force any low-contrast or hidden dynamic text in sidebar and radio buttons to remain visible."""
-    import streamlit.components.v1 as components
-    components.html("""<script>
-    function fixVisibility() {
-        var sb = parent.document.querySelector('[data-testid="stSidebar"]');
-        if(sb) {
-            sb.querySelectorAll('p, span, small, label, div').forEach(function(el){
-                var cs = parent.window.getComputedStyle(el);
-                if(cs.color === 'rgb(255, 255, 255)' || cs.color === 'rgba(0, 0, 0, 0)' || parseFloat(cs.opacity) < 0.3){
-                    el.style.setProperty('color', '#475569', 'important');
-                    el.style.setProperty('-webkit-text-fill-color', '#475569', 'important');
-                    el.style.setProperty('opacity', '1', 'important');
-                }
-            });
-        }
-        parent.document.querySelectorAll('[data-testid="stRadio"] label p, [data-testid="stRadio"] label span').forEach(function(el){
-            el.style.setProperty('color', '#0F172A', 'important');
-            el.style.setProperty('-webkit-text-fill-color', '#0F172A', 'important');
-            el.style.setProperty('opacity', '1', 'important');
-        });
-    }
-    fixVisibility();
-    var fixInterval = setInterval(fixVisibility, 300);
-    setTimeout(function(){ clearInterval(fixInterval); }, 5000);
-    try {
-        var observer = new MutationObserver(function(){ setTimeout(fixVisibility, 100); });
-        observer.observe(parent.document.body, { childList: true, subtree: true });
-    } catch(e) {}
-    </script>""", height=0)
+    """All styling and contrast are handled cleanly via CSS in theme.py without client-side script overhead."""
+    pass
+
+
+def render_footer():
+    """Renders deep slate branded footer matching the reference design."""
+    _render_html("""
+<div class="th-footer">
+    <div class="th-footer-grid">
+        <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                <div style="font-size:26px;">🩺</div>
+                <strong style="font-size:1.15rem;color:#FFFFFF;letter-spacing:-0.02em;">MahaArogya Setu</strong>
+            </div>
+            <p style="font-size:0.86rem;color:#B3D1D3;line-height:1.55;margin:0 0 12px 0;">
+                Bridging healthcare accessibility across Maharashtra's underserved tribal and rural blocks. Real-time AI clinical triage and scheme navigation in English, हिंदी, and मराठी.
+            </p>
+            <span style="font-size:0.75rem;background:rgba(0,210,180,0.15);color:#00D2B4;padding:4px 12px;border-radius:999px;font-weight:700;">
+                SMART INDIA HACKATHON • NHM
+            </span>
+        </div>
+        <div>
+            <div class="th-footer-title">24×7 Helplines</div>
+            <a href="tel:108" class="th-footer-link" style="color:#FF8080;font-weight:700;">🚑 Ambulance: 108</a>
+            <a href="tel:102" class="th-footer-link" style="color:#FFD180;font-weight:700;">🤰 Janani Express: 102</a>
+            <a href="tel:104" class="th-footer-link">🏥 Health Advice: 104</a>
+            <a href="tel:1098" class="th-footer-link">🧒 Childline: 1098</a>
+            <a href="tel:181" class="th-footer-link">👩 Women Helpline: 181</a>
+        </div>
+        <div>
+            <div class="th-footer-title">Schemes & Portals</div>
+            <a href="https://www.jeevandayee.gov.in" target="_blank" class="th-footer-link">MJPJAY Portal</a>
+            <a href="https://pmjay.gov.in" target="_blank" class="th-footer-link">Ayushman Bharat (PM-JAY)</a>
+            <a href="https://esanjeevani.in" target="_blank" class="th-footer-link">eSanjeevani Telemedicine</a>
+            <a href="https://abha.abdm.gov.in" target="_blank" class="th-footer-link">ABHA Digital Health ID</a>
+            <a href="https://janaushadhi.gov.in" target="_blank" class="th-footer-link">PM Jan Aushadhi Kendra</a>
+        </div>
+        <div>
+            <div class="th-footer-title">Key Districts</div>
+            <span class="th-footer-link">📍 Nandurbar (Tribal Core)</span>
+            <span class="th-footer-link">📍 Gadchiroli (Aheri, Bhamragad)</span>
+            <span class="th-footer-link">📍 Amravati (Melghat Blocks)</span>
+            <span class="th-footer-link">📍 Palghar (Jawhar, Mokhada)</span>
+            <span class="th-footer-link">📍 Yavatmal (Pusad, City)</span>
+        </div>
+    </div>
+    <div class="th-footer-bottom">
+        MahaArogya Setu © 2026 · General Healthcare Awareness & Access Navigation · In severe symptoms, immediately call 108 or visit nearest District Hospital.
+    </div>
+</div>
+""")

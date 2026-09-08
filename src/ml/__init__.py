@@ -31,3 +31,9 @@ from src.ml.engine import (
     web_speech_lang,
     load_model,
 )
+from src.ml.gemini_client import (
+    query_gemini_flash,
+    is_gemini_available,
+    get_gemini_api_key,
+)
+

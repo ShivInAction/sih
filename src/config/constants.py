@@ -196,23 +196,80 @@ def _stem_word(w):
 
 GENERIC_SYMPTOMS_STEMMED = set(GENERIC_SYMPTOMS) | {_stem_word(w) for w in GENERIC_SYMPTOMS}
 
-RED_FLAG_PHRASES_EN = ["difficulty breathing","shortness of breath","can't breathe","cannot breathe","unable to breathe","hard to breathe","breathless","gasping","chest pain","pain in chest","tightness in chest","pressure in chest","unconscious","unconsciousness","fainted","fainting","passed out","collapsed","not waking","not responding","loss of consciousness","coughing blood","coughing up blood","vomiting blood","blood in vomit","blood in stool","bloody stool","black stool","severe bleeding","uncontrolled bleeding","seizure","seizures","convulsion","convulsions","stiff neck","neck stiffness","blue lips","bluish lips","blue face","severe abdominal pain","severe stomach pain","confusion","disoriented","very drowsy","difficulty swallowing","cannot swallow","no urine","not passing urine","sunken eyes","high fever not improving","fever not improving after 3 days","hot dry skin","not sweating"]
-RED_FLAG_PHRASES_HI = ["सांस लेने में तकलीफ","सांस नहीं आ","सांस फूल","बेहोश","बेहोशी","सीने में दर्द","छाती में दर्द","खून की उल्टी","खून आ रहा","खून निकल","दौरा पड़","दौरे आ","गर्दन अकड़",
-    "सांस लेने में दिक्कत",
-    "सांस लेने में बहुत",
-    "सांस में तकलीफ",
-    "सांस में दिक्कत"]
-RED_FLAG_PHRASES_MR = ["श्वास घेण्यास त्रास",
-    "श्वास घेण्यास खूप",
-    "श्वास लागला",
-    "श्वास घेऊ शकत नाही","दम लागणे","छातीत दुखणे","बेहोश","शुद्ध हरपणे","रक्ताची उलटी","रक्तस्त्राव","झटके येणे","फिट येणे","मान आखडणे","पोटात तीव्र वेदना","लघवी न होणे","गरोदरपणात रक्तस्त्राव","गरोदरपणात तीव्र पोटदुखी"]
+RED_FLAG_PHRASES_EN = [
+    "difficulty breathing","shortness of breath","can't breathe","cannot breathe","unable to breathe","hard to breathe","breathless","gasping",
+    "chest pain","pain in chest","tightness in chest","pressure in chest",
+    "knife in stomach","knife in abdomen","knife in chest","knife wound","knife cut","knife","stab in stomach","stab wound","stabbed","stabbing","stab","impaled","penetrating wound","blade wound",
+    "gunshot","bullet wound","bullet","shot in",
+    "severe bleeding","uncontrolled bleeding","heavy bleeding","profuse bleeding","bleeding stomach","bleeding from ear","arterial bleed","deep cut","slashed",
+    "unconscious","unconsciousness","fainted","fainting","passed out","collapsed","not waking","not responding","loss of consciousness",
+    "coughing blood","coughing up blood","vomiting blood","blood in vomit","blood in stool","bloody stool","black stool",
+    "seizure","seizures","convulsion","convulsions","stiff neck","neck stiffness","blue lips","bluish lips","blue face",
+    "severe abdominal pain","severe stomach pain","confusion","disoriented","very drowsy","difficulty swallowing","cannot swallow",
+    "snake bite","snakebite","cobra bite","viper bite","scorpion sting",
+    "poison","poisoning","swallowed poison","consumed poison","drank poison","rat poison","pesticide","insecticide","chemical ingestion","overdose",
+    "severe burn","third degree burn","fire burn","acid burn","acid attack",
+    "electric shock","electrocution","electrocuted","choking","choked","drowning","near drowning","hanging","strangulation",
+    "road accident","car accident","car crash","bike accident","vehicle collision","fall from height","head injury","skull fracture","severe accident",
+    "heart attack","cardiac arrest","stroke","paralysis","facial drooping","slurred speech",
+    "no urine","not passing urine","sunken eyes","high fever not improving","fever not improving after 3 days","hot dry skin","not sweating"
+]
 
-CRITICAL_EMERGENCY_PHRASES_EN = ["difficulty breathing","shortness of breath","can't breathe","cannot breathe","unable to breathe","hard to breathe","breathless","gasping","chest pain","pain in chest","tightness in chest","pressure in chest","unconscious","unconsciousness","fainted","fainting","passed out","collapsed","not waking","not responding","loss of consciousness","coughing blood","coughing up blood","vomiting blood","blood in vomit","severe bleeding","uncontrolled bleeding","seizure","seizures","convulsion","convulsions","blue lips","bluish lips","blue face","confusion","disoriented","very drowsy"]
-CRITICAL_EMERGENCY_PHRASES_HI = ["सांस लेने में तकलीफ","सांस नहीं आ","सांस फूल","बेहोश","बेहोशी","सीने में दर्द","छाती में दर्द","खून की उल्टी","खून आ रहा","खून निकल","दौरा पड़","दौरे आ"]
-CRITICAL_EMERGENCY_PHRASES_MR = ["श्वास घेण्यास त्रास",
-    "श्वास घेण्यास खूप",
-    "श्वास लागला",
-    "श्वास घेऊ शकत नाही","दम लागणे","छातीत दुखणे","बेहोश","शुद्ध हरपणे","रक्ताची उलटी","रक्तस्त्राव","झटके येणे","फिट येणे"]
+RED_FLAG_PHRASES_HI = [
+    "सांस लेने में तकलीफ","सांस नहीं आ","सांस फूल","सांस लेने में दिक्कत","सांस लेने में बहुत","सांस में तकलीफ","सांस में दिक्कत",
+    "बेहोश","बेहोशी","सीने में दर्द","छाती में दर्द","खून की उल्टी","खून आ रहा","खून निकल","दौरा पड़","दौरे आ","गर्दन अकड़",
+    "पेट में चाकू","चाकू लगा","चाकू घोंप","चाकू मार","चाकू पेट","चाकू","छुरा","गोली लगी","गोली मार",
+    "जहर खा","जहर पी","जहर","कीटनाशक","दवा ज्यादा खा ली",
+    "सांप काट","सांप ने काटा","सांप का डस","बिच्छू","बिच्छू काट",
+    "जल गया","आग लग","एसिड गिर","एसिड",
+    "करंट लग","बिजली का झटका","गला घुट","सांस घुट","डूब गया",
+    "एक्सीडेंट","दुर्घटना","गाड़ी से टकरा","सिर में चोट","सिर फट गया",
+    "खून बह रहा","खून रुक नहीं","गंभीर घाव","गहरा घाव",
+    "हार्ट अटैक","दिल का दौरा","लकवा","स्ट्रोक"
+]
+
+RED_FLAG_PHRASES_MR = [
+    "श्वास घेण्यास त्रास","श्वास घेण्यास खूप","श्वास लागला","श्वास घेऊ शकत नाही","दम लागणे","छातीत दुखणे",
+    "बेहोश","शुद्ध हरपणे","रक्ताची उलटी","रक्तस्त्राव","झटके येणे","फिट येणे","मान आखडणे","पोटात तीव्र वेदना","लघवी न होणे",
+    "गरोदरपणात रक्तस्त्राव","गरोदरपणात तीव्र पोटदुखी",
+    "पोटात सुरी","पोटात चाकू","सुरी खुपसली","चाकू लागला","चाकू मारला","सुरी","चाकू","गोळी लागली",
+    "विष प्राशन","विष घेतले","विषबाधा","कीटकनाशक",
+    "साप चावला","सर्पदंश","विंचू चावला",
+    "भाजले","गंभीर भाजले","आगीत","एसिड",
+    "विजेचा धक्का","करंट बसला","श्वास गुदमरतोय","घशात अडकले","बुडाला",
+    "अपघात झाला","गंभीर अपघात","डोक्याला मार","रक्तस्त्राव थांबत नाही","खूप रक्त",
+    "हार्ट अटॅक","हृदयविकाराचा झटका","पक्षाघात","लकवा"
+]
+
+CRITICAL_EMERGENCY_PHRASES_EN = [
+    "difficulty breathing","shortness of breath","can't breathe","cannot breathe","unable to breathe","hard to breathe","breathless","gasping",
+    "chest pain","pain in chest","tightness in chest","pressure in chest",
+    "knife in stomach","knife in abdomen","knife in chest","knife wound","knife cut","knife","stab in stomach","stab wound","stabbed","stabbing","stab","impaled","penetrating wound",
+    "gunshot","bullet wound","bullet","shot in",
+    "unconscious","unconsciousness","fainted","fainting","passed out","collapsed","not waking","not responding","loss of consciousness",
+    "coughing blood","coughing up blood","vomiting blood","blood in vomit",
+    "severe bleeding","uncontrolled bleeding","heavy bleeding","profuse bleeding","arterial bleed",
+    "snake bite","snakebite","cobra bite","viper bite","poison","poisoning","pesticide","rat poison","chemical ingestion",
+    "severe burn","third degree burn","acid burn","electric shock","electrocution","choking","drowning","hanging",
+    "road accident","car crash","bike crash","head injury","skull fracture",
+    "heart attack","cardiac arrest","stroke","paralysis",
+    "seizure","seizures","convulsion","convulsions","blue lips","bluish lips","blue face","confusion","disoriented","very drowsy"
+]
+
+CRITICAL_EMERGENCY_PHRASES_HI = [
+    "सांस लेने में तकलीफ","सांस नहीं आ","सांस फूल","बेहोश","बेहोशी","सीने में दर्द","छाती में दर्द","खून की उल्टी","खून आ रहा","खून निकल","दौरा पड़","दौरे आ",
+    "पेट में चाकू","चाकू लगा","चाकू घोंप","चाकू","छुरा","गोली लगी","जहर खा","जहर पी","जहर","कीटनाशक",
+    "सांप काट","सांप ने काटा","बिच्छू","जल गया","एसिड","करंट लग","गला घुट","डूब गया","एक्सीडेंट","दुर्घटना","सिर में चोट","खून रुक नहीं रहा","हार्ट अटैक","दिल का दौरा","लकवा","स्ट्रोक"
+]
+
+CRITICAL_EMERGENCY_PHRASES_MR = [
+    "श्वास घेण्यास त्रास","श्वास घेण्यास खूप","श्वास लागला","श्वास घेऊ शकत नाही","दम लागणे","छातीत दुखणे",
+    "बेहोश","शुद्ध हरपणे","रक्ताची उलटी","रक्तस्त्राव","झटके येणे","फिट येणे",
+    "पोटात सुरी","पोटात चाकू","सुरी खुपसली","चाकू लागला","सुरी","चाकू","गोळी लागली",
+    "विष प्राशन","विष घेतले","विषबाधा","कीटकनाशक","साप चावला","सर्पदंश","विंचू चावला",
+    "भाजले","एसिड","विजेचा धक्का","श्वास गुदमरतोय","बुडाला","अपघात झाला","गंभीर अपघात","डोक्याला मार","रक्तस्त्राव थांबत नाही",
+    "हार्ट अटॅक","हृदयविकाराचा झटका","पक्षाघात"
+]
 
 EXTRA_KEYWORDS = {
     "Dengue":["pain behind eyes","behind the eyes","behind my eyes","bleeding gums","joint pain","severe abdominal pain","persistent vomiting","fever not improving after 3 days"],

@@ -12,3 +12,9 @@ APP_NAME = "MahaArogya Setu"
 APP_VERSION = "2.0.0"
 MAX_HISTORY_LENGTH = 50
 MAX_QUERY_LENGTH = 500
+
+# Gemini Flash Configuration
+DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+FALLBACK_GEMINI_MODEL = "gemini-3.6-flash"
+GEMINI_TIMEOUT_SECONDS = 15
+

@@ -74,6 +74,23 @@ def _mic_component(lang_code: str):
   }
   var injTimer = setInterval(function(){ injectMic(); if (injected) clearInterval(injTimer); }, 400);
 
+  function setupHeaderHide() {
+    var hdrs = host.querySelectorAll('header[data-testid="stHeader"], .stAppHeader, [data-testid="stHeader"]');
+    hdrs.forEach(function(hdr){
+      if (hdr && !hdr.dataset.hoverHider) {
+        hdr.dataset.hoverHider = '1';
+        hdr.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease';
+        hdr.addEventListener('mouseenter', function() {
+          hdr.style.setProperty('transform', 'translateY(-100%)', 'important');
+          hdr.style.setProperty('opacity', '0', 'important');
+          hdr.style.setProperty('pointer-events', 'none', 'important');
+        });
+      }
+    });
+  }
+  setupHeaderHide();
+  setTimeout(setupHeaderHide, 600);
+
   var listening = false, rec = null, ft = '', delivered = false;
 
   function deliver(t) {

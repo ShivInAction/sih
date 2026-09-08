@@ -180,6 +180,275 @@ def care_pathway_html(recommended_facility_type, lang="en"):
 
 
 
+def format_trauma_emergency_card(trauma_type="TRAUMA_PENETRATING", query="", lang="en"):
+    """Render a dedicated clinical trauma first-aid card for life-threatening emergencies."""
+    tt = str(trauma_type or "").upper()
+    q_lower = (query or "").lower()
+
+    is_penetrating = "PENETRATING" in tt or any(w in q_lower for w in [
+        "knife", "stab", "stabbed", "stabbing", "impaled", "bullet", "gunshot", "blade", "penetrating",
+        "चाकू", "छुरा", "गोली", "सुरी", "वार"
+    ])
+    is_snake = "SNAKE" in tt or any(w in q_lower for w in [
+        "snake", "snakebite", "cobra", "viper", "krait", "scorpion", "सांप", "साप", "सर्पदंश", "विंचू"
+    ])
+    is_poison = "POISON" in tt or any(w in q_lower for w in [
+        "poison", "poisoning", "pesticide", "insecticide", "rat poison", "overdose", "chemical ingestion", "जहर", "विष", "विषबाधा", "कीटनाशक"
+    ])
+    is_burn = "BURN" in tt or any(w in q_lower for w in [
+        "burn", "burns", "acid", "fire", "जल गया", "भाजले", "आगीत"
+    ])
+
+    if is_penetrating:
+        if lang == "mr":
+            return """
+<div class="th-dx-card" style="border: 2.5px solid #DC2626; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.22); margin-bottom: 14px;">
+    <div class="th-dx-header" style="background: linear-gradient(135deg, #991B1B 0%, #DC2626 100%);">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:24px;">🚨</span>
+            <div>
+                <strong style="font-size:1.02rem;color:#FFFFFF;display:block;">अति-तातडीची सर्जिकल आणीबाणी: वार / पोटात सुरी किंवा शस्त्र</strong>
+                <span style="font-size:0.75rem;color:#FEE2E2;font-weight:700;">CRITICAL TRAUMA · तातडीने शस्त्रक्रिया आवश्यक</span>
+            </div>
+        </div>
+        <span style="background:rgba(255,255,255,0.25);color:#FFFFFF;padding:4px 10px;border-radius:999px;font-size:0.72rem;font-weight:700;">
+            १०८ ला कॉल करा
+        </span>
+    </div>
+    <div class="th-dx-body" style="padding:20px 24px;color:#0F172A;line-height:1.65;">
+        <div style="background:#FEF2F2;border-left:5px solid #DC2626;border-radius:8px;padding:12px 16px;margin-bottom:14px;color:#991B1B;font-weight:700;font-size:0.95rem;">
+            ⚠️ सर्वात महत्त्वाचा जीवनरक्षक नियम: पोटात घुसलेली सुरी किंवा वस्तू अजिबात बाहेर काढू नका!
+        </div>
+        <p style="font-size:0.90rem;color:#334155;margin-bottom:12px;">
+            घुसलेली वस्तू बाहेर काढल्यास अंतर्गत रक्तवाहिन्या उघड्या पडून प्रचंड रक्तस्त्राव होतो आणि काही मिनिटांत मृत्यू होऊ शकतो. केवळ शस्त्रक्रियागृहातच (OT) सर्जन ती काढतील.
+        </p>
+        <h4 style="color:#991B1B;margin:12px 0 8px 0;font-size:0.95rem;">🩹 तातडीचे प्रथमोपचार (Immediate First Aid):</h4>
+        <ul style="margin:0 0 14px 18px;padding:0;font-size:0.90rem;color:#1E293B;">
+            <li><strong>सुरी स्थिर करा:</strong> सुरीच्या दोन्ही बाजूंना स्वच्छ कापडाच्या घड्या किंवा टॉवेल लावून ती हलणार नाही याची काळजी घ्या.</li>
+            <li><strong>जखमेभोवती हलका दाब:</strong> सुरीवर दाब देऊ नका, जखमेच्या आजूबाजूला स्वच्छ कापडाने दाबून रक्तस्त्राव रोखा.</li>
+            <li><strong>रुग्णाची स्थिती:</strong> रुग्णाला पाठीवर शांत झोपवा, पोटावरील ताण कमी करण्यासाठी गुडघे थोडे दुमडून ठेवा. पांघरूण घाला.</li>
+            <li><strong>काहीही खाऊ किंवा पिऊ घालू नका (Nil by Mouth):</strong> तात्काळ भूल देऊन शस्त्रक्रिया करावी लागत असल्याने रुग्णाला पाणी किंवा अन्न अजिबात देऊ नका.</li>
+            <li><strong>रुग्णालय:</strong> रक्तपेढी व शस्त्रक्रियागृह असलेल्या जवळच्या उपजिल्हा (SDH) किंवा जिल्हा रुग्णालयात (DH) त्वरित दाखल करा.</li>
+        </ul>
+    </div>
+</div>"""
+        if lang == "hi":
+            return """
+<div class="th-dx-card" style="border: 2.5px solid #DC2626; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.22); margin-bottom: 14px;">
+    <div class="th-dx-header" style="background: linear-gradient(135deg, #991B1B 0%, #DC2626 100%);">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:24px;">🚨</span>
+            <div>
+                <strong style="font-size:1.02rem;color:#FFFFFF;display:block;">अति-गंभीर सर्जिकल आपातकाल: पेट में चाकू / गहरा घाव (Stab Wound)</strong>
+                <span style="font-size:0.75rem;color:#FEE2E2;font-weight:700;">CRITICAL TRAUMA · तत्काल सर्जरी आवश्यक</span>
+            </div>
+        </div>
+        <span style="background:rgba(255,255,255,0.25);color:#FFFFFF;padding:4px 10px;border-radius:999px;font-size:0.72rem;font-weight:700;">
+            108 पर कॉल करें
+        </span>
+    </div>
+    <div class="th-dx-body" style="padding:20px 24px;color:#0F172A;line-height:1.65;">
+        <div style="background:#FEF2F2;border-left:5px solid #DC2626;border-radius:8px;padding:12px 16px;margin-bottom:14px;color:#991B1B;font-weight:700;font-size:0.95rem;">
+            ⚠️ सबसे महत्वपूर्ण जीवनरक्षक नियम: पेट में धंसे हुए चाकू या वस्तु को बिल्कुल बाहर न निकालें!
+        </div>
+        <p style="font-size:0.90rem;color:#334155;margin-bottom:12px;">
+            चाकू बाहर निकालने की गलती कभी न करें। चाकू अभी आंतरिक रक्तवाहिकाओं को दबाए हुए है; निकालने पर आंतरिक खून का फव्वारा छूट सकता है और मरीज की कुछ ही मिनटों में जान जा सकती है। इसे केवल अस्पताल के ऑपरेशन थिएटर में सर्जन ही निकालेंगे।
+        </p>
+        <h4 style="color:#991B1B;margin:12px 0 8px 0;font-size:0.95rem;">🩹 तत्काल प्राथमिक उपचार (Immediate First Aid Steps):</h4>
+        <ul style="margin:0 0 14px 18px;padding:0;font-size:0.90rem;color:#1E293B;">
+            <li><strong>चाकू को स्थिर करें:</strong> चाकू के दोनों तरफ साफ कपड़ा या तौलिया मोड़कर रखें ताकि चाकू जरा भी न हिले-डुले।</li>
+            <li><strong>घाव के आसपास दबाव बनाएं:</strong> चाकू पर दबाव न दें, घाव के चारों तरफ हल्के हाथ से साफ कपड़े से दबाएं ताकि खून का बहाव कम हो।</li>
+            <li><strong>मरीज को सही लिटाएं:</strong> मरीज को पीठ के बल लिटाएं, पेट की मांसपेशियों का तनाव कम करने के लिए घुटनों को हल्का मोड़ें, और कंबल से ढकें ताकि शॉक न लगे।</li>
+            <li><strong>पानी या खाना बिल्कुल न दें:</strong> मरीज को पानी, चाय या खाना बिल्कुल न दें, क्योंकि तुरंत इमरजेंसी ऑपरेशन (जनरल एनेस्थीसिया) करना पड़ सकता है।</li>
+            <li><strong>सीधे जिला अस्पताल ले जाएं:</strong> मरीज को सीधे जिला अस्पताल (DH) या ट्रॉमा सेंटर ले जाएं जहां सर्जन और ब्लड बैंक उपलब्ध हो।</li>
+        </ul>
+    </div>
+</div>"""
+
+        return """
+<div class="th-dx-card" style="border: 2.5px solid #DC2626; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.22); margin-bottom: 14px;">
+    <div class="th-dx-header" style="background: linear-gradient(135deg, #991B1B 0%, #DC2626 100%);">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:24px;">🚨</span>
+            <div>
+                <strong style="font-size:1.02rem;color:#FFFFFF;display:block;">CRITICAL SURGICAL EMERGENCY: PENETRATING ABDOMINAL TRAUMA / STAB WOUND</strong>
+                <span style="font-size:0.75rem;color:#FEE2E2;font-weight:700;">IMMEDIATE SURGICAL ATTENTION REQUIRED</span>
+            </div>
+        </div>
+        <span style="background:rgba(255,255,255,0.25);color:#FFFFFF;padding:4px 10px;border-radius:999px;font-size:0.72rem;font-weight:700;">
+            CALL 108 NOW
+        </span>
+    </div>
+    <div class="th-dx-body" style="padding:20px 24px;color:#0F172A;line-height:1.65;">
+        <div style="background:#FEF2F2;border-left:5px solid #DC2626;border-radius:8px;padding:12px 16px;margin-bottom:14px;color:#991B1B;font-weight:700;font-size:0.95rem;">
+            ⚠️ VITAL LIFE-SAVING RULE: DO NOT REMOVE OR PULL OUT THE KNIFE OR IMPALED OBJECT!
+        </div>
+        <p style="font-size:0.90rem;color:#334155;margin-bottom:12px;">
+            Never attempt to remove the knife or impaled object. The object currently exerts a tamponade effect, plugging injured major blood vessels and internal organs. Removing it outside a surgical operating theater can cause fatal internal hemorrhagic shock within minutes.
+        </p>
+        <h4 style="color:#991B1B;margin:12px 0 8px 0;font-size:0.95rem;">🩹 Life-Saving Emergency First-Aid Protocol:</h4>
+        <ul style="margin:0 0 14px 18px;padding:0;font-size:0.90rem;color:#1E293B;">
+            <li><strong>Stabilize the Object:</strong> Pack bulky rolled towels, sterile dressings, or clean cloths on BOTH sides of the knife to firmly support it and prevent any movement or deeper penetration.</li>
+            <li><strong>Control Bleeding Around Wound:</strong> Apply gentle, firm pressure AROUND the base of the wound with clean cloths (NEVER press down onto the knife itself).</li>
+            <li><strong>Position the Patient:</strong> Keep the patient lying flat on their back. If conscious, slightly bending the knees helps relax abdominal wall tension. Cover with a warm blanket to prevent hypothermia and shock.</li>
+            <li><strong>Nil by Mouth:</strong> Strictly DO NOT give any water, liquids, or food. Emergency surgical exploratory laparotomy under general anesthesia is required immediately.</li>
+            <li><strong>Emergency Destination:</strong> Transport immediately via 108 Ambulance to the nearest Sub-District Hospital (SDH) or District Hospital (DH) equipped with a 24/7 Surgical Operation Theatre and Blood Bank.</li>
+        </ul>
+    </div>
+</div>"""
+
+    if is_snake:
+        title = "सर्पदंश / विंचू चावल्याची आणीबाणी" if lang == "mr" else "सांप / बिच्छू के काटने की आपातकालीन स्थिति" if lang == "hi" else "CRITICAL EMERGENCY: SNAKEBITE / SCORPION ENVENOMATION"
+        warning = "तातडीने अँटी-स्नेक व्हेनम (ASV) साठी शासकीय रुग्णालयात जा!" if lang == "mr" else "तुरंत एंटी-स्नेक वेनम (ASV) के लिए सरकारी अस्पताल पहुंचें!" if lang == "hi" else "Rush immediately to nearest Government Hospital for Anti-Snake Venom (ASV)!"
+        return f"""
+<div class="th-dx-card" style="border: 2px solid #DC2626; margin-bottom: 14px;">
+    <div class="th-dx-header" style="background: linear-gradient(135deg, #7F1D1D 0%, #DC2626 100%);">
+        <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:24px;">🐍</span><div><strong style="color:#FFF;">{title}</strong></div></div>
+    </div>
+    <div class="th-dx-body" style="padding:18px 22px;">
+        <div style="background:#FEF2F2;border-left:4px solid #DC2626;padding:10px 14px;margin-bottom:12px;color:#991B1B;font-weight:700;">⚠️ {warning}</div>
+        <ul style="font-size:0.90rem;color:#334155;line-height:1.6;">
+            <li>Keep the bitten limb still and positioned BELOW heart level.</li>
+            <li>DO NOT cut, squeeze, suck venom, or tie tight tourniquets (causes tissue gangrene).</li>
+            <li>Remove rings, watches, or tight clothing near the bite area before swelling begins.</li>
+            <li>Anti-Snake Venom (ASV) is provided 100% FREE at all Maharashtra PHCs, CHCs, and District Hospitals.</li>
+            <li>Call 108 immediately for an emergency ambulance.</li>
+        </ul>
+    </div>
+</div>"""
+
+    if is_poison:
+        title = "विषबाधा / कीटकनाशक प्राशन आणीबाणी" if lang == "mr" else "विष / कीटनाशक की गंभीर आपातकालीन स्थिति" if lang == "hi" else "CRITICAL EMERGENCY: ACUTE POISONING / PESTICIDE INGESTION"
+        return f"""
+<div class="th-dx-card" style="border: 2px solid #DC2626; margin-bottom: 14px;">
+    <div class="th-dx-header" style="background: linear-gradient(135deg, #7F1D1D 0%, #DC2626 100%);">
+        <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:24px;">☠️</span><div><strong style="color:#FFF;">{title}</strong></div></div>
+    </div>
+    <div class="th-dx-body" style="padding:18px 22px;">
+        <div style="background:#FEF2F2;border-left:4px solid #DC2626;padding:10px 14px;margin-bottom:12px;color:#991B1B;font-weight:700;">⚠️ DO NOT induce vomiting unless explicitly directed by a physician!</div>
+        <ul style="font-size:0.90rem;color:#334155;line-height:1.6;">
+            <li>Keep the chemical bottle, pesticide packet, or medicine strip safely to show doctors.</li>
+            <li>Keep the patient in the recovery position (on their side) so vomit cannot choke their airways.</li>
+            <li>Call 108 Ambulance immediately for gastric lavage and ICU support at District Hospital.</li>
+            <li>Call 104 National Health Helpline for immediate poison control advice.</li>
+        </ul>
+    </div>
+</div>"""
+
+    # General Emergency Card
+    return ""
+
+
+def format_general_clinical_triage_card(query="", entities=None, lang="en"):
+    """Clinical triage evaluation for symptoms not matching specific known diseases in local dataset."""
+    entities = entities or {}
+    q_safe = html.escape(query[:120])
+    
+    if lang == "mr":
+        return f"""
+<div class="th-dx-card" style="border: 2px solid #00D2B4; box-shadow: 0 8px 26px rgba(0, 210, 180, 0.12); margin-bottom: 16px;">
+    <div class="th-dx-header" style="background: linear-gradient(135deg, #0B2528 0%, #00A892 100%);">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:24px;">🩺</span>
+            <div>
+                <strong style="font-size:1.02rem;color:#FFFFFF;display:block;">महाआरोग्य प्राथमिक वैद्यकीय सल्ला</strong>
+                <span style="font-size:0.72rem;color:#E0F8F4;font-weight:700;">क्लिनिकल मार्गदर्शन</span>
+            </div>
+        </div>
+        <span style="font-size:0.72rem;background:rgba(255,255,255,0.2);color:#FFFFFF;padding:4px 10px;border-radius:999px;font-weight:700;">
+            प्राथमिक मूल्यांकन
+        </span>
+    </div>
+    <div class="th-dx-body" style="padding:20px 24px;color:#0B2528;line-height:1.65;">
+        <p style="font-size:0.92rem;color:#334155;margin-bottom:12px;">
+            तुम्ही नोंदवलेली लक्षणे: <em>"{q_safe}"</em>. प्राथमिक मूल्यांकनानुसार योग्य काळजी खालीलप्रमाणे आहे:
+        </p>
+        <h4 style="color:#00A892;margin:10px 0 6px 0;">🛡️ तात्काळ घरगुती काळजी व आराम:</h4>
+        <ul style="font-size:0.88rem;color:#334155;margin:0 0 12px 18px;">
+            <li>भरपूर पाणी किंवा ओआरएस (ORS) पाणी प्या आणि पूर्ण विश्रांती घ्या.</li>
+            <li>हलका, पचायला सोपा आणि ताजा आहार घ्या.</li>
+            <li>डॉक्टरांच्या प्रत्यक्ष सल्ल्याशिवाय तीव्र प्रतिजैविके (Antibiotics) स्वतःहून घेऊ नका.</li>
+        </ul>
+        <h4 style="color:#DC2626;margin:10px 0 6px 0;">⚠️ धोक्याची लक्षणे (तात्काळ रुग्णालयात जा):</h4>
+        <p style="font-size:0.86rem;color:#991B1B;margin:0 0 12px 0;">
+            अति तीव्र पोटदुखी, सतत उलट्या, रक्ताची उलटी, श्वास घेण्यास त्रास किंवा ३ दिवसांपेक्षा जास्त ताप असल्यास तात्काळ जवळच्या शासकीय रुग्णालयात जा.
+        </p>
+        <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;padding:10px 14px;font-size:0.84rem;color:#16794C;">
+            🏥 <strong>शासकीय सुविधा:</strong> जवळच्या प्राथमिक आरोग्य केंद्रात (PHC) किंवा ग्रामीण रुग्णालयात मोफत तपासणी उपलब्ध आहे. मोफत सल्ला: १०४ | रुग्णवाहिका: १०८.
+        </div>
+    </div>
+</div>"""
+
+    if lang == "hi":
+        return f"""
+<div class="th-dx-card" style="border: 2px solid #00D2B4; box-shadow: 0 8px 26px rgba(0, 210, 180, 0.12); margin-bottom: 16px;">
+    <div class="th-dx-header" style="background: linear-gradient(135deg, #0B2528 0%, #00A892 100%);">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:24px;">🩺</span>
+            <div>
+                <strong style="font-size:1.02rem;color:#FFFFFF;display:block;">महाआरोग्य प्राथमिक चिकित्सीय परामर्श</strong>
+                <span style="font-size:0.72rem;color:#E0F8F4;font-weight:700;">क्लिनिकल मार्गदर्शन</span>
+            </div>
+        </div>
+        <span style="font-size:0.72rem;background:rgba(255,255,255,0.2);color:#FFFFFF;padding:4px 10px;border-radius:999px;font-weight:700;">
+            प्राथमिक मूल्यांकन
+        </span>
+    </div>
+    <div class="th-dx-body" style="padding:20px 24px;color:#0B2528;line-height:1.65;">
+        <p style="font-size:0.92rem;color:#334155;margin-bottom:12px;">
+            आपके द्वारा बताए गए लक्षण: <em>"{q_safe}"</em>. प्राथमिक क्लिनिकल मूल्यांकन के आधार पर आवश्यक सुझाव:
+        </p>
+        <h4 style="color:#00A892;margin:10px 0 6px 0;">🛡️ तात्कालिक देखभाल एवं आराम:</h4>
+        <ul style="font-size:0.88rem;color:#334155;margin:0 0 12px 18px;">
+            <li>पर्याप्त मात्रा में पानी, ओआरएस (ORS) या तरल पदार्थ लें और पर्याप्त आराम करें।</li>
+            <li>हल्का, ताजा और सुपाच्य भोजन लें।</li>
+            <li>बिना डॉक्टर की सलाह के खुद से कोई एंटीबायोटिक या दर्द निवारक दवा न लें।</li>
+        </ul>
+        <h4 style="color:#DC2626;margin:10px 0 6px 0;">⚠️ खतरे के संकेत (तुरंत अस्पताल जाएं):</h4>
+        <p style="font-size:0.86rem;color:#991B1B;margin:0 0 12px 0;">
+            तेज असहनीय दर्द, लगातार उल्टी, खून आना, सांस लेने में कठिनाई या 3 दिन से अधिक तेज बुखार होने पर तुरंत सरकारी अस्पताल जाएं।
+        </p>
+        <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;padding:10px 14px;font-size:0.84rem;color:#16794C;">
+            🏥 <strong>शासकीय सुविधा:</strong> अपने नजदीकी प्राथमिक स्वास्थ्य केंद्र (PHC) में मुफ्त जांच और दवाएं उपलब्ध हैं। स्वास्थ्य हेल्पलाइन: 104 | एम्बुलेंस: 108.
+        </div>
+    </div>
+</div>"""
+
+    return f"""
+<div class="th-dx-card" style="border: 2px solid #00D2B4; box-shadow: 0 8px 26px rgba(0, 210, 180, 0.12); margin-bottom: 16px;">
+    <div class="th-dx-header" style="background: linear-gradient(135deg, #0B2528 0%, #00A892 100%);">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:24px;">🩺</span>
+            <div>
+                <strong style="font-size:1.02rem;color:#FFFFFF;display:block;">MahaArogya Clinical Symptom Triage</strong>
+                <span style="font-size:0.72rem;color:#E0F8F4;font-weight:700;">INITIAL EVALUATION</span>
+            </div>
+        </div>
+        <span style="font-size:0.72rem;background:rgba(255,255,255,0.2);color:#FFFFFF;padding:4px 10px;border-radius:999px;font-weight:700;">
+            CLINICAL GUIDANCE
+        </span>
+    </div>
+    <div class="th-dx-body" style="padding:20px 24px;color:#0B2528;line-height:1.65;">
+        <p style="font-size:0.92rem;color:#334155;margin-bottom:12px;">
+            Evaluation for stated symptoms: <em>"{q_safe}"</em>.
+        </p>
+        <h4 style="color:#00A892;margin:10px 0 6px 0;">🛡️ Supportive Care & Comfort Measures:</h4>
+        <ul style="font-size:0.88rem;color:#334155;margin:0 0 12px 18px;">
+            <li>Maintain hydration with clean water, ORS fluids, or light broths. Rest adequately.</li>
+            <li>Eat light, easily digestible meals. Avoid oily, spicy, or unhygienic foods.</li>
+            <li>Avoid taking unprescribed schedule-H antibiotics without a doctor's examination.</li>
+        </ul>
+        <h4 style="color:#DC2626;margin:10px 0 6px 0;">⚠️ Danger Signs (Seek Immediate Medical Care):</h4>
+        <p style="font-size:0.86rem;color:#991B1B;margin:0 0 12px 0;">
+            Severe worsening pain, persistent vomiting, blood in vomit/stool, breathing difficulty, dizziness, or fever persisting beyond 3 days.
+        </p>
+        <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;padding:10px 14px;font-size:0.84rem;color:#16794C;">
+            🏥 <strong>Public Healthcare:</strong> Visit your nearest Primary Health Centre (PHC) or Community Health Centre (CHC) for free clinical examination. Free Medical Advice: 104 | Ambulance: 108.
+        </div>
+    </div>
+</div>"""
+
+
 def emergency_banner_html(lang="en"):
     if lang == "hi":
         return """<div class="th-alert emerg"><div class="th-alert-icon">🚨</div><div class="th-alert-body"><h4>आपातकालीन स्थिति — तुरंत चिकित्सीय सहायता लें</h4><p>आपके संदेश में ऐसे लक्षण हैं जिन पर <strong>तत्काल चिकित्सा ध्यान</strong> की आवश्यकता है। तुरंत निकटतम अस्पताल जाएं।</p><div class="th-emerg-actions"><a href="tel:108" class="th-emerg-btn">🚑 एम्बुलेंस (MEMS): 108</a><a href="tel:104" class="th-emerg-btn-sub">🏥 आरोग्य हेल्पलाइन: 104</a><a href="tel:102" class="th-emerg-btn-sub">🤰 जननी एक्सप्रेस: 102</a></div></div></div>"""
@@ -606,3 +875,46 @@ def render_helpline_guide(lang="en"):
 <strong>4. Child Helpline:</strong> <a href="tel:1098" style="color:#0B6BCB;font-weight:700;">1098</a>
 <strong>5. Women Helpline:</strong> <a href="tel:181" style="color:#0B6BCB;font-weight:700;">181</a>
 <strong>6. ASHA Worker:</strong> Contact your village Panchayat or Anganwadi center for ASHA worker details</p></div></div>"""
+
+
+def render_medicine_showcase_grid(lang="en"):
+    """Showcases essential Jan Aushadhi generic medicines styled like the product bottles in the reference design."""
+    import textwrap
+    cards_html = ""
+    for med, d in GENERIC_MEDS.items():
+        use_text = d.get("use", "")
+        saving_text = d.get("saving", "")
+        branded_price = d.get("branded", "")
+        generic_price = d.get("generic", "")
+        cards_html += f"""
+<div class="th-med-card">
+    <div class="th-med-icon">💊</div>
+    <div class="th-med-name">{html.escape(med)}</div>
+    <div class="th-med-use">{html.escape(use_text)}</div>
+    <div style="font-size:0.75rem;color:#7B9597;text-decoration:line-through;margin-bottom:2px;">Branded: {branded_price}</div>
+    <div style="font-size:0.90rem;font-weight:800;color:#0B2528;margin-bottom:8px;">Jan Aushadhi: <span style="color:#00A892;">{generic_price}</span></div>
+    <span class="th-med-saving">Save {saving_text}</span>
+</div>
+"""
+
+    title = "सिद्ध वैद्यकीय दिलासा — विज्ञानावर आधारित" if lang == "mr" else ("सिद्ध चिकित्सीय राहत — विज्ञान आधारित" if lang == "hi" else "Proven Medical Relief, Backed By Science")
+    subtitle = "Pradhan Mantri Bhartiya Janaushadhi Pariyojana (PMBJP) — Up to 85% Savings on Essential Drugs"
+
+    full_html = f"""
+<div class="th-med-showcase">
+    <div style="text-align:center;margin-bottom:12px;">
+        <span class="th-hero-badge" style="margin-bottom:8px;">💊 JAN AUSHADHI GENERIC ESSENTIALS</span>
+        <h2 style="font-size:1.6rem;font-weight:800;color:var(--deep-slate);margin:6px 0 4px 0;">{title}</h2>
+        <p style="font-size:0.88rem;color:var(--text-muted);margin:0;">{subtitle}</p>
+    </div>
+    <div class="th-med-grid">
+        {cards_html}
+    </div>
+    <div style="text-align:center;margin-top:20px;">
+        <a href="https://janaushadhi.gov.in" target="_blank" class="th-btn-teal" style="font-size:0.84rem;padding:10px 22px;">
+            📍 Find Nearest Jan Aushadhi Kendra
+        </a>
+    </div>
+</div>
+"""
+    return "\n".join(line.strip() for line in full_html.splitlines())

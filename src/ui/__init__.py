@@ -16,13 +16,22 @@ from src.ui.cards import (
     render_abha_html,
     render_health_camps_html,
     render_helpline_guide,
+    format_trauma_emergency_card,
+    format_general_clinical_triage_card,
     render_debug_panel,
+    render_medicine_showcase_grid,
 )
 from src.ui.pipeline import generate_response
 from src.ui.views import (
     _ui,
+    render_navbar,
     render_sidebar,
     render_hero,
+    render_feature_highlights,
+    render_statistics_ribbon,
+    render_why_choose_us,
+    render_testimonial_section,
     render_tabs,
     render_visibility_fix,
+    render_footer,
 )

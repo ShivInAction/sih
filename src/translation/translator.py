@@ -33,6 +33,8 @@ def devanagari_to_english(query):
     for hi, en in _DEVANAGARI_HI_MAP: text = text.replace(hi, " " + en + " ")
     return " ".join(re.findall(r"[a-z]+", text.lower()))
 
+_GLOBAL_TRANSLATION_CACHE = {}
+
 def normalize_for_match(text): return (text or "").lower().replace("'", "")
 
 
@@ -45,7 +47,10 @@ def _looks_like_translation_error(text):
 def translate_safe(text, source, target):
     if not text or not str(text).strip(): return None
     if source == target: return text
-    if st.session_state.get("low_bandwidth", False): return None
+    try:
+        if st.session_state.get("low_bandwidth", False): return None
+    except Exception:
+        pass
     key = (source, target, str(text).strip())
     if key in _GLOBAL_TRANSLATION_CACHE: return _GLOBAL_TRANSLATION_CACHE[key]
     for attempt in range(2):

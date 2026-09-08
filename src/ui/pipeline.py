@@ -53,6 +53,10 @@ from src.ml.engine import (
     match_and_rank_facilities,
     rank_diseases,
 )
+from src.ml.gemini_client import (
+    query_gemini_flash,
+    is_gemini_available,
+)
 from src.ui.cards import (
     format_seasonal_prevention_card,
     emergency_banner_html,
@@ -72,6 +76,8 @@ from src.ui.cards import (
     caution_banner_html,
     format_disease_plain,
     format_disease_card_html,
+    format_trauma_emergency_card,
+    format_general_clinical_triage_card,
     _build_fallback_response,
 )
 
@@ -160,18 +166,33 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
     }
 
     # --- EMERGENCY route (highest priority) ---
-    if primary_intent == INTENT_EMERGENCY:
+    is_emergency_case = (
+        primary_intent == INTENT_EMERGENCY
+        or urgency == "EMERGENCY"
+        or _critical
+        or _red_flag
+    )
+
+    if is_emergency_case:
+        primary_intent = INTENT_EMERGENCY
+        urgency = "EMERGENCY"
+        care_level = "EMERGENCY"
         entities["required_service"] = "Emergency"
         entities["facility_type"] = "District Hospital"
-        matched_facs_with_reasons = match_and_rank_facilities(entities.get("district"), ["Emergency"], "District Hospital", urgency, entities=entities)
+        matched_facs_with_reasons = match_and_rank_facilities(entities.get("district"), ["Emergency"], "District Hospital", "EMERGENCY", entities=entities)
         matched_facs = [f for f, _ in matched_facs_with_reasons]
         _routing_debug["matched_facility_count"] = len(matched_facs)
         _routing_debug["route"] = "emergency"
+        _routing_debug["intent"] = INTENT_EMERGENCY
+        _routing_debug["sub_intent"] = secondary_intent or "TRAUMA"
+        _routing_debug["urgency"] = "EMERGENCY"
+        _routing_debug["care_level"] = "EMERGENCY"
         st.session_state["_routing_debug"] = _routing_debug
 
-        # Emergency: show ONLY emergency action content. No routine disease cards.
-        # Suppress "Viral Fever / MILD / PHC" and similar non-emergency interpretations.
-        emerg_response = emergency_banner_html(response_lang)
+        # Specialized trauma first aid card (knife, stab, gunshot, snakebite, poisoning, burns)
+        trauma_first_aid = format_trauma_emergency_card(secondary_intent or "TRAUMA_PENETRATING", query, response_lang)
+        emerg_response = (trauma_first_aid + "\n" if trauma_first_aid else "") + emergency_banner_html(response_lang)
+
         # Add 108 call action prominently
         if response_lang == "hi":
             emerg_response += '<div style="margin-top:12px;"><div class="th-alert info"><div class="th-alert-icon">\U0001f3e5</div><div class="th-alert-body"><h4>तुरंत अस्पताल जाएं</h4><p><a href="tel:108" style="color:#DC2626;font-weight:700;font-size:1.1rem;">108</a> पर तुरंत कॉल करें या <a href="tel:104" style="color:#0B6BCB;font-weight:700;">104</a> पर स्वास्थ्य सलाह लें</p></div></div></div>'
@@ -379,7 +400,7 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
         st.session_state["_routing_debug"] = _routing_debug
         return render_abha_html(response_lang)
 
-    # Stage 6+7+8+9: Symptom check pipeline
+    # Stage 6+7+8+9: Symptom check & clinical query resolution
     if primary_intent in (INTENT_SYMPTOM_CHECK, INTENT_CHILD_HEALTH):
         informational = is_informational_question(query)
         caution = informational and (urgency == "EMERGENCY")
@@ -388,6 +409,54 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
         alternatives = [alt_row["disease"] for score, idx, alt_row in ranked[1:3] if score >= 0.43 and (best_score - score) <= 0.18] if best_score >= 0.48 else []
         good_match = best_score >= 0.48
         care_level = assess_care_level(primary_intent, entities, best_score, _red_flag, _critical)
+
+        matched_facs = []
+        if entities.get("district"):
+            rec_fac_str = str(row.get("recommended_facility", "PHC")) if good_match else "PHC"
+            matched_facs_with_reasons = match_and_rank_facilities(entities.get("district"), [rec_fac_str], entities=entities)
+            matched_facs = [f for f, _ in matched_facs_with_reasons]
+            _routing_debug["matched_facility_count"] = len(matched_facs)
+
+        # ── GEMINI 2.5 FLASH CLINICAL AI RESOLUTION ──
+        if is_gemini_available():
+            try:
+                gemini_output = query_gemini_flash(
+                    query=query,
+                    response_lang=response_lang,
+                    entities=entities,
+                    matched_disease_row=(row if good_match else None),
+                    matched_facilities=matched_facs,
+                )
+                if gemini_output:
+                    _routing_debug["route"] = "gemini_flash_triage"
+                    _routing_debug["ai_model"] = "gemini_flash"
+                    _routing_debug["care_level"] = care_level
+                    _routing_debug["disease_matched"] = str(row["disease"]) if good_match else "AI Clinical Synthesis"
+                    st.session_state["_routing_debug"] = _routing_debug
+
+                    if "health_records" in st.session_state:
+                        rec_cond = str(row["disease"]) if good_match else "General Health Consultation"
+                        rec_sev = str(row.get("severity", "N/A")).upper() if pd.notna(row.get("severity")) else "N/A"
+                        st.session_state.health_records.append({
+                            "date": datetime.now().strftime("%d %b %Y, %I:%M %p"),
+                            "query": query[:80] + ("..." if len(query) > 80 else ""),
+                            "condition": rec_cond,
+                            "severity": rec_sev,
+                        })
+
+                    result_html = gemini_output
+                    if caution:
+                        result_html = caution_banner_html(response_lang) + result_html
+                    if matched_facs:
+                        result_html += generate_ranked_facility_results(matched_facs[:3], entities, response_lang)
+                    rec_fac_tier = "DH" if "hospital" in str(row.get("recommended_facility", "")).lower() else "PHC"
+                    result_html += care_pathway_html(rec_fac_tier, response_lang)
+                    return result_html
+            except Exception as _gemini_err:
+                import traceback
+                traceback.print_exc()
+
+        # Fallback to local embedding matcher and translated structured cards
         if good_match and "health_records" in st.session_state:
             st.session_state.health_records.append({"date": datetime.now().strftime("%d %b %Y, %I:%M %p"), "query": query[:80] + ("..." if len(query) > 80 else ""), "condition": str(row["disease"]), "severity": str(row.get("severity", "N/A")).upper() if pd.notna(row.get("severity")) else "N/A"})
         # Store routing debug
@@ -395,10 +464,6 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
         _routing_debug["care_level"] = care_level
         _routing_debug["best_score"] = round(best_score, 3)
         _routing_debug["disease_matched"] = str(row["disease"]) if best_score >= 0.48 else None
-        _routing_debug["matched_facility_count"] = 0
-        if entities.get("district"):
-            matched_facs_with_reasons = match_and_rank_facilities(entities.get("district"), [str(row.get("recommended_facility","PHC"))], entities=entities)
-            _routing_debug["matched_facility_count"] = len(matched_facs_with_reasons)
         st.session_state["_routing_debug"] = _routing_debug
 
         if good_match:
@@ -415,10 +480,40 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
                 translated_row = translate_row_fields(row, response_lang)
                 return caution_html + format_disease_card_html(row, alternatives, lang=response_lang, translated_row=translated_row) + care_pathway_html(fac_type, response_lang)
             return caution_html + structured + care_pathway_html(fac_type, response_lang)
+        # Intelligent triage for symptoms not matched to a specific CSV disease
+        if is_gemini_available():
+            try:
+                general_ai_resp = query_gemini_flash(query=query, response_lang=response_lang, entities=entities)
+                if general_ai_resp:
+                    _routing_debug["route"] = "gemini_symptom_synthesis"
+                    _routing_debug["care_level"] = care_level
+                    st.session_state["_routing_debug"] = _routing_debug
+                    return general_ai_resp + care_pathway_html("PHC", response_lang)
+            except Exception:
+                pass
+
+        # Local intelligent clinical triage card
+        triage_card = format_general_clinical_triage_card(query, entities, response_lang)
+        _routing_debug["route"] = "clinical_symptom_triage"
+        _routing_debug["care_level"] = care_level
+        st.session_state["_routing_debug"] = _routing_debug
+
         clarifications = build_clarifying_question(entities, primary_intent, response_lang)
+        hint = ""
         if clarifications:
             hint = '<div style="background:#F0F7FF;border:1px solid #BAE6FD;border-radius:10px;padding:12px 16px;margin-bottom:10px;">' + "<br>".join(clarifications) + "</div>"
-            return hint + _build_fallback_response(response_lang)
-        return _build_fallback_response(response_lang)
 
-    return _build_fallback_response(response_lang)
+        return hint + triage_card + care_pathway_html("PHC", response_lang)
+
+    # General / Unstructured query fallback with Gemini Flash or intelligent card
+    if is_gemini_available():
+        try:
+            general_ai_resp = query_gemini_flash(query=query, response_lang=response_lang, entities=entities)
+            if general_ai_resp:
+                _routing_debug["route"] = "gemini_general_query"
+                st.session_state["_routing_debug"] = _routing_debug
+                return general_ai_resp + care_pathway_html("PHC", response_lang)
+        except Exception:
+            pass
+
+    return format_general_clinical_triage_card(query, entities, response_lang) + care_pathway_html("PHC", response_lang)

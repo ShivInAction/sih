@@ -367,14 +367,47 @@ def classify_intent(query_en, original_query):
     combined = q + " " + orig
 
     # --- EMERGENCY: highest priority, always runs first ---
-    romanized_emergency = ["seene mein dard","chest pain","saans lene mein","saans nahi",
-                           "behosh","bekhabar","bahut dard","tez dard","emergency help",
-                           "need emergency","blood aa raha","khun aa raha","dil ka attack",
-                           "heart attack","stroke","fits aa rahe","seizure",
-                           "difficulty breathing","severe breathing","unconscious",
-                           "severe chest pain","heavy bleeding","convulsions"]
+    romanized_emergency = [
+        "seene mein dard","chest pain","saans lene mein","saans nahi",
+        "behosh","bekhabar","bahut dard","tez dard","emergency help",
+        "need emergency","blood aa raha","khun aa raha","dil ka attack",
+        "heart attack","stroke","fits aa rahe","seizure",
+        "difficulty breathing","severe breathing","unconscious",
+        "severe chest pain","heavy bleeding","convulsions",
+        "pet mein chaku","chaku laga","chaku","stab","knife",
+        "goli lagi","jahar","visha","saanp kata","saap chawla"
+    ]
     is_romanized_emerg = any(p in combined for p in romanized_emergency)
     if has_red_flags(original_query, query_en) or is_critical_emergency(original_query, query_en) or is_romanized_emerg:
+        # Specialized Trauma Classification
+        penetrating_kw = ["knife","stab","stabbed","stabbing","impaled","bullet","gunshot","blade","penetrating",
+                          "चाकू","छुरा","गोली","सुरी"]
+        if any(k in combined for k in penetrating_kw):
+            return INTENT_EMERGENCY, "TRAUMA_PENETRATING", 0.99
+
+        snake_kw = ["snake","snakebite","cobra","viper","krait","scorpion","सांप","साप","सर्पदंश","बिच्छू","विंचू"]
+        if any(k in combined for k in snake_kw):
+            return INTENT_EMERGENCY, "TRAUMA_SNAKEBITE", 0.99
+
+        poison_kw = ["poison","poisoning","pesticide","insecticide","rat poison","overdose","chemical ingestion",
+                     "जहर","विष","विषबाधा","कीटनाशक"]
+        if any(k in combined for k in poison_kw):
+            return INTENT_EMERGENCY, "TRAUMA_POISON", 0.99
+
+        burn_kw = ["burn","burns","acid","fire","जल गया","भाजले","एसिड"]
+        if any(k in combined for k in burn_kw):
+            return INTENT_EMERGENCY, "TRAUMA_BURNS", 0.99
+
+        accident_kw = ["accident","crash","collision","fall from height","head injury","skull fracture",
+                       "एक्सीडेंट","दुर्घटना","अपघात"]
+        if any(k in combined for k in accident_kw):
+            return INTENT_EMERGENCY, "TRAUMA_ACCIDENT", 0.99
+
+        cardiac_kw = ["chest pain","heart attack","cardiac","stroke","paralysis",
+                      "सीने में दर्द","छाती में दर्द","हार्ट अटैक","दिल का दौरा","पक्षाघात","लकवा"]
+        if any(k in combined for k in cardiac_kw):
+            return INTENT_EMERGENCY, "TRAUMA_CARDIAC", 0.99
+
         mat_kw = ["pregnant","pregnancy","bleeding","contraction","labor","labour","maternal",
                    "गरोदर","प्रसूती","रक्तस्त्राव","गर्भ"]
         if any(k in q or k in orig for k in mat_kw):
