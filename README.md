@@ -193,21 +193,48 @@ pip install fastapi uvicorn
 
 ---
 
-### Step 2: Configure Environment Variables
+### Step 2: Configure Environment Variables (`.env`)
 
-Create a `.env` file in the root directory:
+Create a new file named **`.env`** directly in the **root project folder** (next to `api.py` and `requirements.txt`, **NOT** inside `frontend/` or `src/`):
 
+```text
+sih/                          <-- 📍 Root Directory
+│
+├── .env                      <-- ⭐ CREATE .env FILE HERE
+├── api.py                    <-- (Right next to api.py)
+├── requirements.txt          <-- (Right next to requirements.txt)
+├── README.md
+├── frontend/                 <-- (DO NOT put .env inside here)
+└── src/                      <-- (DO NOT put .env inside here)
+```
+
+#### Add your API Key to `.env`:
 ```env
-GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_API_KEY=AIzaSyYourGeminiApiKeyHere
 PORT=8000
 ```
+
+> 🔑 **How to get a Free Gemini API Key (1 Minute)**:
+> 1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey).
+> 2. Sign in and click **"Create API Key"**.
+> 3. Copy your key and paste it after `GEMINI_API_KEY=` above.
+
+#### 💡 Quick One-Line Creation:
+- **Windows (PowerShell)**:
+  ```powershell
+  Set-Content -Path .env -Value "GEMINI_API_KEY=your_key_here`nPORT=8000"
+  ```
+- **Linux / macOS**:
+  ```bash
+  echo -e "GEMINI_API_KEY=your_key_here\nPORT=8000" > .env
+  ```
 
 ---
 
 ### Step 3: Run the FastAPI Backend Server
 
 ```bash
-uvicorn api:app --port 8000 --reload
+uvicorn api:app --host 0.0.0.0 --port 8000 --reload
 ```
 *Backend will be live at `http://localhost:8000` (Swagger docs at `http://localhost:8000/docs`).*
 
