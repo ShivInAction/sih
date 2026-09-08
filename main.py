@@ -22,7 +22,7 @@ from src.ml.engine import (
     web_speech_lang,
 )
 from src.ui.audio import inject_mic_component
-from src.ui.cards import render_medicine_showcase_grid
+from src.ui.cards import render_medicine_showcase_grid, render_clinical_search_loader
 from src.ui.views import (
     _ui,
     _render_html,
@@ -121,14 +121,18 @@ if final_query:
     user_display = f"🎙️ *{html.escape(final_query)}*" if used_voice else html.escape(final_query)
     st.session_state.history.append(("user", user_display))
 
-    with st.spinner(_ui("analyzing")):
+    loader_placeholder = st.empty()
+    loader_placeholder.markdown(render_clinical_search_loader(language), unsafe_allow_html=True)
+
+    try:
         model, symptom_embeddings, name_embeddings = get_matcher()
-        try:
-            response = generate_response(
-                final_query, language, df, symptom_embeddings, name_embeddings, model
-            )
-        except Exception as e:
-            response = f'<div class="th-alert caution"><h4>{_ui("sys_err")}</h4></div>'
+        response = generate_response(
+            final_query, language, df, symptom_embeddings, name_embeddings, model
+        )
+    except Exception as e:
+        response = f'<div class="th-alert caution"><h4>{_ui("sys_err")}</h4></div>'
+    finally:
+        loader_placeholder.empty()
 
     st.session_state.history.append(("assistant", response))
     if len(st.session_state.history) > MAX_HISTORY_LENGTH:

@@ -19,6 +19,7 @@ from src.ml.gemini_client import (
 )
 from src.data_access.loader import load_data
 from src.ui.pipeline import generate_response
+from src.ui.cards import render_clinical_search_loader
 
 class TestGeminiIntegration(unittest.TestCase):
     def setUp(self):
@@ -41,16 +42,25 @@ class TestGeminiIntegration(unittest.TestCase):
         raw_text = "### Immediate Assessment\nPatient has mild viral symptoms.\n\n* Take rest\n* Drink ORS"
         card_html = _format_ai_response_card(raw_text, DEFAULT_GEMINI_MODEL, "en")
         self.assertIn("th-dx-card", card_html)
-        self.assertIn("GEMINI 2.5 FLASH CLINICAL AI TRIAGE", card_html)
+        self.assertIn("GEMINI FLASH CLINICAL AI TRIAGE", card_html)
         self.assertIn("Immediate Assessment", card_html)
         self.assertIn("Disclaimer", card_html)
 
     def test_fallback_when_no_key(self):
         """Verify is_gemini_available is False when no key is set."""
-        with patch.dict(os.environ, {}, clear=True):
+        with patch("src.ml.gemini_client.get_gemini_api_key", return_value=""):
             self.assertFalse(is_gemini_available())
             resp = query_gemini_flash("I have fever", "en")
             self.assertEqual(resp, "")
+
+    def test_location_extraction_pari_chowk(self):
+        """Verify location extractor catches multi-tier Hindi location."""
+        from src.ml.nlp_utils import extract_location
+        loc = extract_location("", "अभी मैं परी चौक में नोएडा में हूं मेरे आस पास कौन से नियरेस्ट हॉस्पिटल है जहां में फीवर दिखा सकें")
+        self.assertIsNotNone(loc)
+        self.assertIn("परी चौक", loc)
+        self.assertIn("नोएडा", loc)
+
 
     @patch("src.ml.gemini_client.get_gemini_api_key", return_value="mock-test-key")
     def test_query_gemini_mocked_success(self, mock_key):
@@ -114,6 +124,22 @@ class TestGeminiIntegration(unittest.TestCase):
         self.assertIn("108", resp)
         self.assertIn("CRITICAL SURGICAL EMERGENCY", resp)
         self.assertIn("DO NOT REMOVE", resp)
+
+    def test_clinical_search_loader_rendering(self):
+        """Verify clinical search loader produces rich HTML in EN, HI, and MR."""
+        loader_en = render_clinical_search_loader("en")
+        self.assertIn("th-clinical-loader", loader_en)
+        self.assertIn("AI CLINICAL TRIAGE ENGINE ACTIVE", loader_en)
+        self.assertIn("th-loader-ecg-svg", loader_en)
+        self.assertIn("Analyzing Symptoms", loader_en)
+
+        loader_hi = render_clinical_search_loader("hi")
+        self.assertIn("AI क्लिनिकल ट्रायज इंजन सक्रिय", loader_hi)
+        self.assertIn("स्वास्थ्य लक्षणों का विश्लेषण", loader_hi)
+
+        loader_mr = render_clinical_search_loader("mr")
+        self.assertIn("AI क्लिनिकल ट्रायज इंजिन कार्यरत", loader_mr)
+        self.assertIn("आरोग्य लक्षणांचे विश्लेषण", loader_mr)
 
 
 if __name__ == "__main__":

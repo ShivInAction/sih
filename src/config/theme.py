@@ -56,7 +56,7 @@ CUSTOM_CSS = """
 
   #MainMenu, footer, [data-testid="stDecoration"] { display: none !important; }
   
-  /* ── Streamlit Top Header: Move upward and hide on hover ── */
+  /* ── Streamlit Top Header & Transparent Bar ── */
   header[data-testid="stHeader"],
   [data-testid="stHeader"],
   .stAppHeader {
@@ -64,8 +64,13 @@ CUSTOM_CSS = """
     background-color: transparent !important;
     box-shadow: none !important;
     border: none !important;
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease !important;
-    z-index: 9999 !important;
+    height: 3.5rem !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 99999 !important;
+    pointer-events: none !important;
   }
   header[data-testid="stHeader"] > div,
   .stAppHeader > div {
@@ -74,28 +79,104 @@ CUSTOM_CSS = """
     box-shadow: none !important;
     border: none !important;
   }
-  header[data-testid="stHeader"]:hover,
-  [data-testid="stHeader"]:hover,
-  .stAppHeader:hover,
-  .th-header-hidden {
-    transform: translateY(-100%) !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-  }
 
-  /* Hide Deploy button completely across all versions */
+  /* Hide ONLY Deploy button & Main Menu cleanly without hiding sidebar toggles or toolbar container */
   .stAppDeployButton,
   [data-testid="stAppDeployButton"],
-  [data-testid="stHeaderActionElements"],
-  header [data-testid="stToolbar"],
+  button[data-testid="stDeployButton"],
   header button[title="Deploy"],
   .stDeployButton,
   #stDeployButton,
-  header button[kind="header"] {
+  #MainMenu,
+  [data-testid="stMainMenu"],
+  [data-testid="manage-app-button"] {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
   }
+
+  /* Ensure toolbar stays transparent, active, and allows the expand sidebar button to be clicked */
+  [data-testid="stToolbar"],
+  .stAppToolbar {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  /* ── Streamlit Sidebar Toggle Controls (Always Visible, Pinned & Accessible) ── */
+  [data-testid="stExpandSidebarButton"],
+  [data-testid="stExpandSidebarButton"] button,
+  button[data-testid="stExpandSidebarButton"],
+  [data-testid="collapsedControl"],
+  [data-testid="collapsedControl"] button,
+  button[aria-label="Open sidebar"],
+  button[aria-label="Close sidebar"],
+  [data-testid="stSidebarCollapseButton"],
+  [data-testid="stSidebarCollapseButton"] button {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  [data-testid="stExpandSidebarButton"],
+  button[data-testid="stExpandSidebarButton"],
+  [data-testid="collapsedControl"] {
+    position: fixed !important;
+    top: 12px !important;
+    left: 14px !important;
+    z-index: 2147483646 !important;
+    background: #FFFFFF !important;
+    border: 2px solid #00D2B4 !important;
+    border-radius: 12px !important;
+    padding: 6px 14px !important;
+    box-shadow: 0 4px 16px rgba(0, 210, 180, 0.35) !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+  }
+  [data-testid="stExpandSidebarButton"]:hover,
+  button[data-testid="stExpandSidebarButton"]:hover,
+  [data-testid="collapsedControl"]:hover {
+    background: #E0F8F4 !important;
+    border-color: #00A892 !important;
+    transform: scale(1.06) !important;
+    box-shadow: 0 6px 22px rgba(0, 210, 180, 0.45) !important;
+  }
+  [data-testid="stExpandSidebarButton"] svg,
+  [data-testid="collapsedControl"] svg {
+    fill: #0B2528 !important;
+    stroke: #0B2528 !important;
+    color: #0B2528 !important;
+  }
+
+  #maha-maximize-sidebar-floating-btn {
+    pointer-events: auto !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+  }
+  .th-settings-badge:hover {
+    background: #C6F6EC !important;
+    border-color: #00A892 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,210,180,0.3) !important;
+  }
+
+  [data-testid="stSidebarCollapseButton"] {
+    background: #F4FAF9 !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+  }
+  [data-testid="stSidebarCollapseButton"]:hover {
+    background: #E0F8F4 !important;
+    border-color: #00D2B4 !important;
+  }
+
 
   /* Eliminate empty gap at top of sidebar and page */
   .block-container {
@@ -946,42 +1027,66 @@ CUSTOM_CSS = """
 
   /* ── Deep Slate Footer (Matching Reference Bottom) ── */
   .th-footer {
-    background: var(--deep-slate);
-    border-radius: 24px;
-    padding: 36px 36px 24px;
-    margin-top: 40px;
-    color: #FFFFFF;
-    box-shadow: 0 10px 30px rgba(11,37,40,0.16);
+    background: var(--deep-slate) !important;
+    border-radius: 24px !important;
+    padding: 38px 38px 24px !important;
+    margin-top: 40px !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 10px 30px rgba(11,37,40,0.16) !important;
   }
   .th-footer-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
-    gap: 28px;
-    margin-bottom: 24px;
+    display: grid !important;
+    grid-template-columns: 2fr 1.1fr 1.2fr 1.1fr !important;
+    gap: 28px !important;
+    margin-bottom: 24px !important;
   }
   .th-footer-title {
-    font-size: 0.94rem;
-    font-weight: 800;
-    color: var(--primary-teal);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 12px;
+    font-size: 0.96rem !important;
+    font-weight: 800 !important;
+    color: #00D2B4 !important;
+    -webkit-text-fill-color: #00D2B4 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    margin-bottom: 14px !important;
   }
+  .th-footer p {
+    color: #D1E7E5 !important;
+    -webkit-text-fill-color: #D1E7E5 !important;
+    line-height: 1.6 !important;
+  }
+  .th-footer a,
+  .th-footer a:link,
+  .th-footer a:visited,
   .th-footer-link {
-    display: block;
-    color: #B3D1D3;
-    text-decoration: none;
-    font-size: 0.86rem;
-    margin-bottom: 8px;
-    transition: color 0.15s;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    color: #E0F8F4 !important;
+    -webkit-text-fill-color: #E0F8F4 !important;
+    text-decoration: none !important;
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 10px !important;
+    transition: all 0.2s ease !important;
   }
-  .th-footer-link:hover { color: #FFFFFF; }
+  .th-footer a:hover,
+  .th-footer-link:hover {
+    color: #00D2B4 !important;
+    -webkit-text-fill-color: #00D2B4 !important;
+    transform: translateX(4px) !important;
+  }
+  .th-footer span.th-footer-link {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    font-weight: 600 !important;
+  }
   .th-footer-bottom {
-    border-top: 1px solid rgba(255,255,255,0.12);
-    padding-top: 18px;
-    text-align: center;
-    font-size: 0.8rem;
-    color: #7B9B9D;
+    border-top: 1px solid rgba(255,255,255,0.16) !important;
+    padding-top: 18px !important;
+    text-align: center !important;
+    font-size: 0.84rem !important;
+    color: #B2D8D6 !important;
+    -webkit-text-fill-color: #B2D8D6 !important;
   }
 
   /* ── Contrast & Visibility Safeguards ── */
@@ -1001,6 +1106,326 @@ CUSTOM_CSS = """
     color: var(--text-main) !important;
     -webkit-text-fill-color: var(--text-main) !important;
     opacity: 1 !important;
+  }
+
+  /* ── Modern Clinical Search Loading Screen Styles ── */
+  .th-clinical-loader {
+    background: linear-gradient(135deg, #FFFFFF 0%, #F2FBF9 50%, #E8F9F5 100%) !important;
+    border: 2px solid #00D2B4 !important;
+    border-radius: 20px !important;
+    padding: 24px 28px !important;
+    margin: 18px auto 26px auto !important;
+    max-width: 900px !important;
+    box-shadow: 0 16px 40px rgba(0, 210, 180, 0.22), 0 4px 16px rgba(11, 37, 40, 0.05) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    animation: clinicalCardPulse 2.4s ease-in-out infinite alternate !important;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  }
+
+  @keyframes clinicalCardPulse {
+    0% {
+      box-shadow: 0 10px 30px rgba(0, 210, 180, 0.16);
+      border-color: #00D2B4;
+      transform: translateY(0);
+    }
+    100% {
+      box-shadow: 0 18px 46px rgba(0, 210, 180, 0.32);
+      border-color: #00A892;
+      transform: translateY(-2px);
+    }
+  }
+
+  .th-loader-top-bar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: 16px !important;
+    padding-bottom: 12px !important;
+    border-bottom: 1px solid rgba(0, 210, 180, 0.2) !important;
+  }
+
+  .th-loader-status-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    background: rgba(0, 210, 180, 0.12) !important;
+    color: #007A6C !important;
+    font-size: 0.72rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.8px !important;
+    padding: 4px 12px !important;
+    border-radius: 20px !important;
+    border: 1px solid rgba(0, 210, 180, 0.35) !important;
+  }
+
+  .th-pulse-dot {
+    width: 8px !important;
+    height: 8px !important;
+    background-color: #00D2B4 !important;
+    border-radius: 50% !important;
+    display: inline-block !important;
+    box-shadow: 0 0 10px #00D2B4 !important;
+    animation: pulseDotAnim 1.2s infinite ease-in-out !important;
+  }
+
+  @keyframes pulseDotAnim {
+    0% { transform: scale(0.85); opacity: 0.6; box-shadow: 0 0 4px #00D2B4; }
+    50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 12px #00D2B4; }
+    100% { transform: scale(0.85); opacity: 0.6; box-shadow: 0 0 4px #00D2B4; }
+  }
+
+  .th-loader-tech-badge {
+    font-size: 0.74rem !important;
+    font-weight: 700 !important;
+    color: #5C7678 !important;
+    background: #FFFFFF !important;
+    border: 1px solid #D8EEE9 !important;
+    padding: 4px 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .th-loader-main-body {
+    display: flex !important;
+    align-items: center !important;
+    gap: 20px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .th-loader-radar-wrapper {
+    position: relative !important;
+    width: 58px !important;
+    height: 58px !important;
+    min-width: 58px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .th-loader-ring-outer {
+    position: absolute !important;
+    inset: 0 !important;
+    border: 3px dashed #00D2B4 !important;
+    border-radius: 50% !important;
+    animation: spinClockwise 4s linear infinite !important;
+  }
+
+  .th-loader-ring-inner {
+    position: absolute !important;
+    inset: 6px !important;
+    border: 2px solid transparent !important;
+    border-top-color: #007A6C !important;
+    border-bottom-color: #00A892 !important;
+    border-radius: 50% !important;
+    animation: spinCounterClockwise 2s linear infinite !important;
+  }
+
+  @keyframes spinClockwise {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes spinCounterClockwise {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+  }
+
+  .th-loader-icon-center {
+    font-size: 24px !important;
+    animation: heartbeatBounce 1.5s ease-in-out infinite !important;
+  }
+
+  @keyframes heartbeatBounce {
+    0% { transform: scale(1); }
+    14% { transform: scale(1.2); }
+    28% { transform: scale(1); }
+    42% { transform: scale(1.15); }
+    70% { transform: scale(1); }
+  }
+
+  .th-loader-text-block {
+    flex: 1 !important;
+  }
+
+  .th-loader-heading {
+    font-size: 1.12rem !important;
+    font-weight: 800 !important;
+    color: #0B2528 !important;
+    line-height: 1.4 !important;
+    margin-bottom: 4px !important;
+  }
+
+  .th-loader-subtext {
+    font-size: 0.84rem !important;
+    color: #4E686A !important;
+    line-height: 1.5 !important;
+  }
+
+  /* ECG Wave Line */
+  .th-loader-ecg-container {
+    width: 100% !important;
+    height: 36px !important;
+    margin: 10px 0 16px 0 !important;
+    background: rgba(0, 210, 180, 0.04) !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+  }
+
+  .th-loader-ecg-svg {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+  }
+
+  .th-loader-ecg-bg {
+    stroke: rgba(0, 210, 180, 0.22) !important;
+    stroke-width: 2 !important;
+    fill: none !important;
+  }
+
+  .th-loader-ecg-pulse {
+    stroke: #00D2B4 !important;
+    stroke-width: 3 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+    fill: none !important;
+    stroke-dasharray: 100, 500 !important;
+    animation: ecgFlow 2s linear infinite !important;
+    filter: drop-shadow(0 0 5px #00D2B4) !important;
+  }
+
+  @keyframes ecgFlow {
+    0% { stroke-dashoffset: 600; }
+    100% { stroke-dashoffset: 0; }
+  }
+
+  /* Step Badges */
+  .th-loader-steps-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+  }
+
+  @media (max-width: 768px) {
+    .th-loader-steps-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  .th-loader-step {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 8px 12px !important;
+    border-radius: 12px !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    background: #FFFFFF !important;
+    border: 1px solid #D8EEE9 !important;
+    color: #3D585B !important;
+  }
+
+  .th-loader-step.th-step-active {
+    background: linear-gradient(135deg, #E0F8F4 0%, #FFFFFF 100%) !important;
+    border-color: #00D2B4 !important;
+    color: #007A6C !important;
+    box-shadow: 0 2px 8px rgba(0, 210, 180, 0.18) !important;
+  }
+
+  .th-loader-step.th-step-pulse {
+    border-color: #7BE3D5 !important;
+    color: #0B5C54 !important;
+    animation: pulseSubtle 1.8s infinite ease-in-out !important;
+  }
+
+  @keyframes pulseSubtle {
+    0% { opacity: 0.7; }
+    50% { opacity: 1; }
+    100% { opacity: 0.7; }
+  }
+
+  .th-loader-step.th-step-wait {
+    opacity: 0.65 !important;
+  }
+
+  /* Shimmer Progress Line */
+  .th-loader-shimmer-progress {
+    width: 100% !important;
+    height: 5px !important;
+    background: #D8EEE9 !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  .th-loader-shimmer-bar {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100% !important;
+    width: 35% !important;
+    background: linear-gradient(90deg, #00D2B4 0%, #007A6C 50%, #2DD4BF 100%) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 0 10px #00D2B4 !important;
+    animation: shimmerSweep 1.6s ease-in-out infinite !important;
+  }
+
+  @keyframes shimmerSweep {
+    0% { left: -35%; width: 25%; }
+    50% { width: 50%; }
+    100% { left: 100%; width: 25%; }
+  }
+
+  /* ── Fallback Streamlit Native Spinner Modern Styling ── */
+  [data-testid="stSpinner"],
+  .stSpinner {
+    background: linear-gradient(135deg, #FFFFFF 0%, #F2FBF9 50%, #E8F9F5 100%) !important;
+    border: 1.5px solid #00D2B4 !important;
+    border-radius: 16px !important;
+    padding: 18px 24px !important;
+    margin: 16px auto !important;
+    max-width: 860px !important;
+    box-shadow: 0 10px 30px rgba(0, 210, 180, 0.18), 0 2px 8px rgba(11,37,40,0.04) !important;
+    display: flex !important;
+    align-items: center !important;
+    position: relative !important;
+    overflow: hidden !important;
+    animation: clinicalCardPulse 2.4s ease-in-out infinite alternate !important;
+  }
+
+  [data-testid="stSpinner"]::after,
+  .stSpinner::after {
+    content: "" !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    height: 3px !important;
+    width: 100% !important;
+    background: linear-gradient(90deg, #00D2B4, #007A6C, #2DD4BF) !important;
+    background-size: 200% 100% !important;
+    animation: shimmerBorder 2s linear infinite !important;
+  }
+
+  @keyframes shimmerBorder {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+
+  [data-testid="stSpinner"] svg,
+  [data-testid="stSpinner"] span {
+    color: #00A892 !important;
+    fill: #00A892 !important;
+    filter: drop-shadow(0 0 8px rgba(0, 210, 180, 0.5)) !important;
+  }
+
+  [data-testid="stSpinner"] div[role="status"],
+  [data-testid="stSpinner"] p {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+    font-size: 1.02rem !important;
+    font-weight: 700 !important;
+    color: #0B2528 !important;
+    -webkit-text-fill-color: #0B2528 !important;
   }
 </style>
 """

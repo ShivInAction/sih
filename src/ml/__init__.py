@@ -13,6 +13,7 @@ from src.ml.nlp_utils import (
     is_informational_question,
     is_seasonal_prevention_query,
     detect_requested_service,
+    extract_location,
     extract_entities,
     _extract_symptoms_list,
     classify_intent,
@@ -33,6 +34,7 @@ from src.ml.engine import (
 )
 from src.ml.gemini_client import (
     query_gemini_flash,
+    query_gemini_facility_search,
     is_gemini_available,
     get_gemini_api_key,
 )

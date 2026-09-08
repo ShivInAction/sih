@@ -55,6 +55,7 @@ from src.ml.engine import (
 )
 from src.ml.gemini_client import (
     query_gemini_flash,
+    query_gemini_facility_search,
     is_gemini_available,
 )
 from src.ui.cards import (
@@ -251,9 +252,12 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
         _routing_debug["nearest_requested"] = entities.get("proximity_request", False)
         st.session_state["_routing_debug"] = _routing_debug
 
-        if entities.get("district"):
+        loc_key = entities.get("location") or entities.get("district") or ""
+        ranked_facs = []
+        ranked_facs_with_reasons = []
+        if loc_key:
             ranked_facs_with_reasons = match_and_rank_facilities(
-                entities.get("district"),
+                loc_key,
                 required_services=required_services,
                 facility_type=fac_type,
                 urgency=urgency,
@@ -261,6 +265,8 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
                 entities=entities
             )
             ranked_facs = [f for f, _ in ranked_facs_with_reasons]
+
+        if ranked_facs:
             _routing_debug["matched_facility_count"] = len(ranked_facs)
             st.session_state["_routing_debug"] = _routing_debug
             return generate_ranked_facility_results(
@@ -270,12 +276,30 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
                 ranked_with_reasons=ranked_facs_with_reasons
             )
 
+        # If not matched in static local DB (e.g. Pari Chowk, Noida, Delhi, etc.) or no district:
+        # Gemini Flash resolves nearest facilities across India dynamically!
+        if is_gemini_available():
+            ai_fac_result = query_gemini_facility_search(
+                query=query,
+                location=loc_key,
+                service_needed=requested_service,
+                urgency=urgency,
+                response_lang=response_lang,
+                entities=entities,
+            )
+            if ai_fac_result:
+                _routing_debug["route"] = "gemini_facility_locator"
+                _routing_debug["location"] = loc_key
+                st.session_state["_routing_debug"] = _routing_debug
+                return ai_fac_result
+
         # No district: ask for clarification
         clarifications = build_clarifying_question(entities, primary_intent, response_lang)
         if clarifications:
             hint = '<div style="background:#F0F7FF;border:1px solid #BAE6FD;border-radius:10px;padding:12px 16px;margin-bottom:10px;">' + "<br>".join(clarifications) + "</div>"
             return hint + generate_district_locator_results(norm_q, response_lang)
         return generate_district_locator_results(norm_q, response_lang)
+
 
     # --- Canonical information intents ---
     if primary_intent == INTENT_IMMUNIZATION_INFORMATION:
@@ -337,11 +361,12 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
         _routing_debug["sub_intent"] = secondary_intent
         st.session_state["_routing_debug"] = _routing_debug
 
-        if entities.get("district"):
-            # Use deterministic facility matching with entity context
-            # CRITICAL FIX: pass requested_service so explicit service requests get top ranking
+        loc_key = entities.get("location") or entities.get("district") or ""
+        ranked_facs = []
+        ranked_facs_with_reasons = []
+        if loc_key:
             ranked_facs_with_reasons = match_and_rank_facilities(
-                entities.get("district"),
+                loc_key,
                 required_services=required_services,
                 facility_type=entities.get("facility_type"),
                 urgency=urgency,
@@ -349,9 +374,10 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
                 entities=entities
             )
             ranked_facs = [f for f, _ in ranked_facs_with_reasons]
+
+        if ranked_facs:
             _routing_debug["matched_facility_count"] = len(ranked_facs)
             st.session_state["_routing_debug"] = _routing_debug
-            # Generate context-aware ranked display with dynamic explanation
             return generate_ranked_facility_results(
                 ranked_facs, entities, response_lang,
                 requested_service=requested_service,
@@ -359,12 +385,29 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
                 ranked_with_reasons=ranked_facs_with_reasons
             )
 
+        # Dynamic AI locator fallback across India for custom locations & landmarks
+        if is_gemini_available():
+            ai_fac_result = query_gemini_facility_search(
+                query=query,
+                location=loc_key,
+                service_needed=requested_service,
+                urgency=urgency,
+                response_lang=response_lang,
+                entities=entities,
+            )
+            if ai_fac_result:
+                _routing_debug["route"] = "gemini_facility_locator"
+                _routing_debug["location"] = loc_key
+                st.session_state["_routing_debug"] = _routing_debug
+                return ai_fac_result
+
         # No district: ask for clarification
         clarifications = build_clarifying_question(entities, primary_intent, response_lang)
         if clarifications:
             hint = '<div style="background:#F0F7FF;border:1px solid #BAE6FD;border-radius:10px;padding:12px 16px;margin-bottom:10px;">' + "<br>".join(clarifications) + "</div>"
             return hint + generate_district_locator_results(norm_q, response_lang)
         return generate_district_locator_results(norm_q, response_lang)
+
 
 
     # --- SCHEME_INFORMATION route ---
@@ -411,13 +454,35 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
         care_level = assess_care_level(primary_intent, entities, best_score, _red_flag, _critical)
 
         matched_facs = []
-        if entities.get("district"):
+        loc_key = entities.get("location") or entities.get("district") or ""
+        if loc_key:
             rec_fac_str = str(row.get("recommended_facility", "PHC")) if good_match else "PHC"
-            matched_facs_with_reasons = match_and_rank_facilities(entities.get("district"), [rec_fac_str], entities=entities)
+            matched_facs_with_reasons = match_and_rank_facilities(loc_key, [rec_fac_str], entities=entities)
             matched_facs = [f for f, _ in matched_facs_with_reasons]
             _routing_debug["matched_facility_count"] = len(matched_facs)
 
-        # ── GEMINI 2.5 FLASH CLINICAL AI RESOLUTION ──
+        # If user explicitly asked for nearest hospital/doctor for their condition and specified location:
+        _wants_nearest_hosp = entities.get("proximity_request", False) or any(
+            k in (norm_q + " " + (query or "").lower())
+            for k in ["hospital", "clinic", "हॉस्पिटल", "अस्पताल", "दवाखाना", "doctor", "डॉक्टर", "दिखा सकें", "दिखाना"]
+        )
+        if _wants_nearest_hosp and loc_key and not matched_facs and is_gemini_available():
+            ai_fac = query_gemini_facility_search(
+                query=query,
+                location=loc_key,
+                service_needed=str(row["disease"]) if good_match else "Fever / General OPD",
+                urgency=urgency,
+                response_lang=response_lang,
+                entities=entities,
+            )
+            if ai_fac:
+                _routing_debug["route"] = "gemini_facility_locator"
+                _routing_debug["location"] = loc_key
+                st.session_state["_routing_debug"] = _routing_debug
+                return ai_fac
+
+        # ── GEMINI FLASH CLINICAL AI RESOLUTION ──
+
         if is_gemini_available():
             try:
                 gemini_output = query_gemini_flash(
@@ -449,8 +514,6 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
                         result_html = caution_banner_html(response_lang) + result_html
                     if matched_facs:
                         result_html += generate_ranked_facility_results(matched_facs[:3], entities, response_lang)
-                    rec_fac_tier = "DH" if "hospital" in str(row.get("recommended_facility", "")).lower() else "PHC"
-                    result_html += care_pathway_html(rec_fac_tier, response_lang)
                     return result_html
             except Exception as _gemini_err:
                 import traceback
@@ -488,7 +551,7 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
                     _routing_debug["route"] = "gemini_symptom_synthesis"
                     _routing_debug["care_level"] = care_level
                     st.session_state["_routing_debug"] = _routing_debug
-                    return general_ai_resp + care_pathway_html("PHC", response_lang)
+                    return general_ai_resp
             except Exception:
                 pass
 
@@ -512,7 +575,7 @@ def _generate_response_inner(query, language, df, symptom_embeddings, name_embed
             if general_ai_resp:
                 _routing_debug["route"] = "gemini_general_query"
                 st.session_state["_routing_debug"] = _routing_debug
-                return general_ai_resp + care_pathway_html("PHC", response_lang)
+                return general_ai_resp
         except Exception:
             pass
 

@@ -135,6 +135,125 @@ def is_seasonal_prevention_query(query):
 
 
 
+def extract_location(query_en: str, original_query: str) -> str:
+    """Extract location, landmark, area, city or district from user query in EN, HI, or MR."""
+    q = (query_en or "").strip()
+    orig = (original_query or "").strip()
+
+    # 1. Multi-tier Hindi patterns: e.g. 'अभी मैं परी चौक में नोएडा में हूं' or 'परी चौक, नोएडा'
+    m_multi_hi = re.search(
+        r'(?:अभी\s*मैं|मैं|हम|हमलोग)?\s*([ऀ-ॿA-Za-z0-9\s\-]+?)\s*(?:में|पे|पर)\s*([ऀ-ॿA-Za-z0-9\s\-]+?)\s*(?:में\s*हूं|में|हूँ|हैं|के\s*पास)',
+        orig
+    )
+    if m_multi_hi:
+        p1 = m_multi_hi.group(1).strip()
+        p2 = m_multi_hi.group(2).strip()
+        p1 = re.sub(r'^(अभी|मैं|हम|हमलोग)\s*', '', p1).strip()
+        p2 = re.sub(r'^(अभी|मैं|हम|हमलोग)\s*', '', p2).strip()
+        if p1 and p2 and len(p1) < 35 and len(p2) < 35:
+            if not any(w in p1 for w in ["मुसीबत", "दर्द", "तकलीफ", "बीमारी", "इमरजेंसी", "समस्या"]):
+                return f"{p1}, {p2}"
+
+    # 2. English multi-tier: 'at X in Y' or 'in X, Y'
+    m_multi_en = re.search(
+        r'(?:at|in|near|around)\s+([A-Za-z0-9\s\-]{2,30}?)\s+(?:in|at|near)\s+([A-Za-z0-9\s\-]{2,30}?)(?:\s+where|\s+which|\s+and|\s+hospital|\.|\,|$)',
+        q,
+        re.I
+    )
+    if m_multi_en:
+        p1 = m_multi_en.group(1).strip()
+        p2 = m_multi_en.group(2).strip()
+        if p1 and p2:
+            return f"{p1}, {p2}"
+
+    # 3. Known cities, NCR landmarks & districts dictionary lookup
+    known_locs = [
+        ("greater noida", "Greater Noida"), ("pari chowk", "Pari Chowk"),
+        ("noida", "Noida"), ("gurugram", "Gurugram"), ("gurgaon", "Gurgaon"),
+        ("delhi", "Delhi"), ("new delhi", "New Delhi"), ("ghaziabad", "Ghaziabad"),
+        ("faridabad", "Faridabad"), ("meerut", "Meerut"), ("agra", "Agra"),
+        ("lucknow", "Lucknow"), ("kanpur", "Kanpur"), ("varanasi", "Varanasi"),
+        ("prayagraj", "Prayagraj"), ("allahabad", "Prayagraj"),
+        ("mumbai", "Mumbai"), ("pune", "Pune"), ("nagpur", "Nagpur"),
+        ("nashik", "Nashik"), ("thane", "Thane"), ("navi mumbai", "Navi Mumbai"),
+        ("aurangabad", "Aurangabad"), ("chhatrapati sambhaji nagar", "Chhatrapati Sambhajinagar"),
+        ("solapur", "Solapur"), ("kolhapur", "Kolhapur"), ("amravati", "Amravati"),
+        ("nanded", "Nanded"), ("jalgaon", "Jalgaon"), ("akola", "Akola"),
+        ("latur", "Latur"), ("dhule", "Dhule"), ("ahmednagar", "Ahmednagar"),
+        ("chandrapur", "Chandrapur"), ("parbhani", "Parbhani"), ("jalna", "Jalna"),
+        ("beed", "Beed"), ("satara", "Satara"), ("yavatmal", "Yavatmal"),
+        ("osmanabad", "Dharashiv"), ("dharashiv", "Dharashiv"), ("nandurbar", "Nandurbar"),
+        ("wardha", "Wardha"), ("bhandara", "Bhandara"), ("buldhana", "Buldhana"),
+        ("gondia", "Gondia"), ("gadchiroli", "Gadchiroli"), ("washim", "Washim"),
+        ("hingoli", "Hingoli"), ("palghar", "Palghar"), ("ratnagiri", "Ratnagiri"),
+        ("sindhudurg", "Sindhudurg"), ("raigad", "Raigad"), ("melghat", "Melghat"),
+        ("dharni", "Dharni"), ("chikhaldara", "Chikhaldara"), ("jawhar", "Jawhar"),
+        ("mokhada", "Mokhada"), ("hadgaon", "Hadgaon"), ("aheri", "Aheri"),
+        ("bhamragad", "Bhamragad"), ("shahada", "Shahada"), ("pusad", "Pusad"),
+        ("kasansur", "Kasansur"), ("harisal", "Harisal"), ("molgi", "Molgi"),
+        ("bengaluru", "Bengaluru"), ("bangalore", "Bengaluru"), ("hyderabad", "Hyderabad"),
+        ("kolkata", "Kolkata"), ("chennai", "Chennai"), ("jaipur", "Jaipur"),
+        ("indore", "Indore"), ("bhopal", "Bhopal"), ("patna", "Patna"),
+        ("chandigarh", "Chandigarh"), ("dehradun", "Dehradun"), ("ranchi", "Ranchi"),
+        ("ahmedabad", "Ahmedabad"), ("surat", "Surat"), ("vadodara", "Vadodara"),
+    ]
+    devanagari_locs = [
+        ("ग्रेटर नोएडा", "Greater Noida"), ("परी चौक", "Pari Chowk"),
+        ("नोएडा", "Noida"), ("गुड़गांव", "Gurugram"), ("गुरुग्राम", "Gurugram"),
+        ("गाजियाबाद", "Ghaziabad"), ("फरीदाबाद", "Faridabad"), ("दिल्ली", "Delhi"),
+        ("नई दिल्ली", "New Delhi"), ("लखनऊ", "Lucknow"), ("कानपुर", "Kanpur"),
+        ("वाराणसी", "Varanasi"), ("आगरा", "Agra"), ("मेरठ", "Meerut"),
+        ("मुंबई", "Mumbai"), ("पुणे", "Pune"), ("नागपुर", "Nagpur"),
+        ("नासिक", "Nashik"), ("नाशिक", "Nashik"), ("ठाणे", "Thane"),
+        ("नवी मुंबई", "Navi Mumbai"), ("औरंगाबाद", "Aurangabad"), ("संभाजीनगर", "Chhatrapati Sambhajinagar"),
+        ("सोलापूर", "Solapur"), ("कोल्हापूर", "Kolhapur"), ("अमरावती", "Amravati"),
+        ("नांदेड", "Nanded"), ("जळगाव", "Jalgaon"), ("अकोला", "Akola"),
+        ("लातूर", "Latur"), ("धुळे", "Dhule"), ("अहमदनगर", "Ahmednagar"),
+        ("चंद्रपूर", "Chandrapur"), ("परभणी", "Parbhani"), ("जालना", "Jalna"),
+        ("बीड", "Beed"), ("सातारा", "Satara"), ("यवतमाळ", "Yavatmal"),
+        ("उस्मानाबाद", "Dharashiv"), ("धाराशिव", "Dharashiv"), ("नंदुरबार", "Nandurbar"),
+        ("वर्धा", "Wardha"), ("भंडारा", "Bhandara"), ("बुलढाणा", "Buldhana"),
+        ("गोंदिया", "Gondia"), ("गडचिरोली", "Gadchiroli"), ("वाशीम", "Washim"),
+        ("हिंगोली", "Hingoli"), ("पालघर", "Palghar"), ("रत्नागिरी", "Ratnagiri"),
+        ("सिंधुदुर्ग", "Sindhudurg"), ("रायगड", "Raigad"), ("मेळघाट", "Melghat"),
+        ("धरणी", "Dharni"), ("चिखलदरा", "Chikhaldara"), ("जव्हार", "Jawhar"),
+        ("मोखाडा", "Mokhada"), ("शहादा", "Shahada"), ("पुसद", "Pusad"),
+        ("अहेरी", "Aheri"), ("भामरगड", "Bhamragad"), ("हरिसळ", "Harisal"),
+        ("मोळगी", "Molgi"), ("बंगलोर", "Bengaluru"), ("बेंगलुरु", "Bengaluru"),
+        ("हैदराबाद", "Hyderabad"), ("कोलकाता", "Kolkata"), ("चेन्नई", "Chennai"),
+        ("जयपुर", "Jaipur"), ("इंदौर", "Indore"), ("भोपाल", "Bhopal"),
+        ("पटना", "Patna"), ("अहमदाबाद", "Ahmedabad"), ("सूरत", "Surat"),
+    ]
+
+    combined_lower = (q + " " + orig).lower()
+    matched_parts = []
+    for dev_k, canonical in devanagari_locs:
+        if dev_k in orig:
+            if canonical not in matched_parts:
+                matched_parts.append(canonical)
+    for eng_k, canonical in known_locs:
+        if eng_k in combined_lower:
+            if canonical not in matched_parts:
+                matched_parts.append(canonical)
+
+    if matched_parts:
+        return ", ".join(matched_parts[:2])
+
+    # 4. Generic single patterns: e.g. 'X में हूं', 'at X'
+    m_single_hi = re.search(
+        r'(?:अभी\s*मैं|मैं|हम)?\s*([ऀ-ॿA-Za-z0-9\s\-]{2,30}?)\s*(?:में\s*हूं|में\s*रहते|के\s*पास|जवळ)',
+        orig
+    )
+    if m_single_hi:
+        cand = m_single_hi.group(1).strip()
+        cand = re.sub(r'^(अभी|मैं|हम|हमलोग)\s*', '', cand).strip()
+        if cand and not any(w in cand for w in ["मुसीबत", "दर्द", "तकलीफ", "बीमारी", "इमरजेंसी", "समस्या", "घर"]):
+            if len(cand) >= 2 and len(cand) <= 30:
+                return cand
+
+    return None
+
+
 def extract_entities(query_en, original_query):
     """Extract age, duration, pregnancy context, location, severity from user query."""
     q = (query_en or "").lower().strip()
@@ -199,15 +318,23 @@ def extract_entities(query_en, original_query):
     if pw:
         entities["pregnancy_week"] = int(pw.group(1))
 
-    # Location/district extraction — supports both Latin and Devanagari
-    districts = ["nandurbar","gadchiroli","melghat","palghar","yavatmal",
-                 "dharni","chikhaldara","jawhar","mokhada","hadgaon","aheri",
-                 "bhamragad","shahada","pusad","kasansur","harisal","molgi"]
-    for d in districts:
-        if d in q or d in orig:
-            entities["district"] = d.title()
-            break
-    # Devanagari district name extraction (when Latin transliteration not found)
+    # Location/district extraction — supports landmarks, cities, districts in Latin & Devanagari
+    loc = extract_location(query_en, original_query)
+    if loc:
+        entities["location"] = loc
+        entities["district"] = loc.split(",")[-1].strip() if "," in loc else loc
+
+    # Legacy fallback district checks if extract_location returned None
+    if not entities.get("district"):
+        districts = ["nandurbar","gadchiroli","melghat","palghar","yavatmal",
+                     "dharni","chikhaldara","jawhar","mokhada","hadgaon","aheri",
+                     "bhamragad","shahada","pusad","kasansur","harisal","molgi"]
+        for d in districts:
+            if d in q or d in orig:
+                entities["district"] = d.title()
+                entities["location"] = d.title()
+                break
+
     if not entities.get("district"):
         _devanagari_districts = {
             "नंदुरबार": "Nandurbar", "नंदुरबारमध्ये": "Nandurbar",
@@ -224,6 +351,7 @@ def extract_entities(query_en, original_query):
         for dev_key, dist_name in _devanagari_districts.items():
             if dev_key in orig or dev_key in q:
                 entities["district"] = dist_name
+                entities["location"] = dist_name
                 break
 
     # Severity indicators
@@ -236,9 +364,9 @@ def extract_entities(query_en, original_query):
 
     # Proximity / "nearest" detection
     _proximity_words = ["nearest", "near me", "nearby", "closest", "mere paas", "paas wala",
-                        "sabse kareeb", "kareebi", "closest government",
-                        "जवळचे", "जवळचा",
-                        "नजीक", "सबसे जवळ"]
+                        "sabse kareeb", "kareebi", "closest government", "paas", "ke paas",
+                        "जवळचे", "जवळचा", "नजीक", "सबसे जवळ",
+                        "आस पास", "आस-पास", "नियरेस्ट", "नजदीक", "नजदीकी", "पास में", "कहाँ है", "किधर है", "दिखा सकें", "कहाँ दिखाएं"]
     if any(k in combined for k in _proximity_words):
         entities["proximity_request"] = True
 
@@ -248,6 +376,7 @@ def extract_entities(query_en, original_query):
                    "सरकारी", "शासकीय"]
     if any(k in combined for k in _govt_words):
         entities["wants_government"] = True
+
 
     # Multi-symptom detection
     symptom_words = ["fever","pain","cough","cold","headache","vomiting","diarrhea",
@@ -578,7 +707,7 @@ def classify_intent(query_en, original_query):
         return INTENT_CHILD_HEALTH, None, 0.75
 
     # --- COMPOUND QUERY DETECTION (scheme + facility) ---
-    _has_fac_word = any(k in q or k in orig for k in ["hospital","phc","chc","clinic","अस्पताल","रुग्णालय"])
+    _has_fac_word = any(k in q or k in orig for k in ["hospital","phc","chc","clinic","अस्पताल","रुग्णालय","हॉस्पिटल","दवाखाना"])
     _has_sch_word = any(k in q or k in orig for k in ["scheme","yojana","kharcha","cover","insurance",
         "mjpjay","ayushman","pmjay","cashless","benefit","eligibility","free treatment","योजना"])
     if _has_fac_word and _has_sch_word:
@@ -587,7 +716,9 @@ def classify_intent(query_en, original_query):
     # --- FACILITY_SEARCH (general, not topic-specific above) ---
     fac_long = ["hospital","clinic","nearest hospital","government hospital",
                 "hospital list","civil hospital","district hospital","opd",
-                "रुग्णालय","अस्पताल","सरकारी अस्पताल","जवळचे"]
+                "रुग्णालय","अस्पताल","सरकारी अस्पताल","जवळचे",
+                "हॉस्पिटल","हॉस्पिटल्स","दवाखाना","चिकित्सालय","क्लिनिक","doctor","डॉक्टर",
+                "दिखा सकें","दिखाना है","चेक कराना"]
     fac_short = ["phc","chc"]
     _fac_match = any(k in q or k in orig for k in fac_long)
     if not _fac_match:

@@ -604,11 +604,25 @@ def generate_district_locator_results(query_text, lang="en"):
     for name in MAHARASHTRA_DISTRICTS:
         pure = re.sub(r"[\(\) ऀ-ॿ]", "", name).lower()
         if pure in q or name.split()[0].lower() in q: matched = name; break
-    if not matched: matched = "Nandurbar (नंदुरबार)"
+
+    if not matched:
+        title = "स्वास्थ्य सुविधा खोज" if lang == "hi" else ("आरोग्य सुविधा शोध" if lang == "mr" else "Healthcare Locator")
+        msg = (
+            "आपल्या जवळचे रुग्णालय शोधण्यासाठी कृपया आपले शहर, परिसर किंवा जिल्हा नमूद करा (उदा. 'पुणे', 'मुंबई', किंवा 'नोएडा परी चौक'). तात्काळ आपत्कालीन मदतीसाठी १०८ क्रमांकावर संपर्क साधा."
+            if lang == "mr"
+            else (
+                "निकटतम अस्पताल खोजने के लिए कृपया अपना शहर, इलाका या जिला बताएं (उदा. 'पुणे', 'मुंबई', या 'नोएडा परी चौक')। आपातकालीन स्थिति में तुरंत 108 या 112 डायल करें।"
+                if lang == "hi"
+                else "To locate hospitals near you, please specify your city, landmark, or district (e.g., 'Pune', 'Mumbai', or 'Pari Chowk Noida'). In an emergency, dial 108 or 112."
+            )
+        )
+        return f"""<div class="th-dx-card"><div class="th-dx-header"><div class="th-dx-header-left"><div class="th-dx-header-icon">🏥</div><div><h4 class="th-dx-title">{title}</h4><span style="font-size:0.75rem;color:#64748B;font-weight:600;">Location Guidance</span></div></div><span class="th-dx-badge">HELPDESK</span></div><div style="padding:18px 20px;color:#0B2528;font-size:0.92rem;"><p style="margin:0 0 10px;">📍 {msg}</p><div style="padding:10px 14px;background:#F0FAF8;border-left:4px solid #00D2B4;border-radius:8px;font-size:0.82rem;color:#234745;">🚑 <strong>Emergency Response:</strong> Dial <strong>108</strong> (Ambulance) or <strong>112</strong> (Unified Emergency).</div></div></div>"""
+
     facs = MAHARASHTRA_DISTRICTS[matched]
     cards = "".join(f"""<div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:12px 16px;margin-bottom:8px;"><div style="display:flex;justify-content:space-between;align-items:center;"><strong style="color:#0B6BCB;font-size:0.92rem;">🏢 {f['name']}</strong><span style="font-size:0.7rem;background:#EAF2FE;color:#0B6BCB;padding:2px 8px;border-radius:999px;font-weight:700;">{f['type']}</span></div><p style="font-size:0.84rem;margin:6px 0 2px;color:#475569;">📍 {f['location']} | Beds: <strong>{f['beds']}</strong></p><p style="font-size:0.84rem;margin:0;color:#475569;">🔧 <em>{f['facilities']}</em></p><p style="font-size:0.78rem;margin:4px 0 0;color:#94A3B8;">ℹ️ Reference data — verify before visiting</p><p style="font-size:0.84rem;margin:4px 0 0;color:#0E9F8F;">📞 <a href="tel:{f['phone']}" style="color:inherit;text-decoration:none;"><strong>{f['phone']}</strong></a></p></div>""" for f in facs)
     title = f"{matched} शासकीय आरोग्य सुविधा" if lang == "mr" else f"{matched} स्वास्थ्य सुविधाएं" if lang == "hi" else f"Government Healthcare Directory - {matched}"
     return f"""<div class="th-dx-card"><div class="th-dx-header"><div class="th-dx-header-left"><div class="th-dx-header-icon">🏥</div><div><h4 class="th-dx-title">{title}</h4><span style="font-size:0.75rem;color:#64748B;font-weight:600;">Reference data — verify details before visiting</span></div></div><span class="th-dx-badge">DIRECTORY</span></div><div style="padding:15px 20px;">{cards}</div></div>"""
+
 
 
 def generate_ranked_facility_results(ranked_facs, entities, lang="en", requested_service=None, secondary_intent=None, ranked_with_reasons=None):
@@ -918,3 +932,90 @@ def render_medicine_showcase_grid(lang="en"):
 </div>
 """
     return "\n".join(line.strip() for line in full_html.splitlines())
+
+
+def render_clinical_search_loader(lang="en") -> str:
+    """Renders a modern, animated clinical loading card with ECG heartbeat wave,
+    concentric radar scanner, dynamic step checklist, and localized health status.
+    """
+    if lang == "mr":
+        status_text = "AI क्लिनिकल ट्रायज इंजिन कार्यरत"
+        badge_text = "⚡ Gemini Flash 3.5 · SIH कोर"
+        heading_text = "आरोग्य लक्षणांचे विश्लेषण आणि वैद्यकीय सल्ला तपासणी सुरू आहे..."
+        subtext = "गंभीरता पातळी, सुरक्षित प्रथमोपचार आणि महाराष्ट्रातील जवळच्या शासकीय रुग्णालयांची पडताळणी होत आहे."
+        step1 = "१. लक्षणे व तीव्रता पडताळणी"
+        step2 = "२. PHC / MJPJAY योजना तपासणी"
+        step3 = "३. वैद्यकीय उपाय व औषध मार्गदर्शन"
+    elif lang == "hi":
+        status_text = "AI क्लिनिकल ट्रायज इंजन सक्रिय"
+        badge_text = "⚡ Gemini Flash 3.5 · SIH कोर"
+        heading_text = "स्वास्थ्य लक्षणों का विश्लेषण एवं चिकित्सा परामर्श जारी है..."
+        subtext = "गंभीरता स्तर, सुरक्षित प्राथमिक उपचार और महाराष्ट्र के नजदीकी सरकारी अस्पतालों की जांच हो रही है।"
+        step1 = "१. लक्षण एवं तात्कालिकता जांच"
+        step2 = "२. PHC / MJPJAY प्रोटोकॉल मिलान"
+        step3 = "३. चिकित्सकीय राहत एवं दवाएं"
+    else:
+        status_text = "AI CLINICAL TRIAGE ENGINE ACTIVE"
+        badge_text = "⚡ Gemini Flash 3.5 · SIH Core"
+        heading_text = "Analyzing Symptoms & Consulting Clinical Protocol..."
+        subtext = "Evaluating urgency, safe home interventions, and nearest Maharashtra healthcare facilities."
+        step1 = "1. Symptom & Triage Parsing"
+        step2 = "2. PHC/MJPJAY Protocol Match"
+        step3 = "3. Evidence-Based Synthesis"
+
+    html_card = f"""
+<div class="th-clinical-loader">
+    <div class="th-loader-top-bar">
+        <div class="th-loader-status-pill">
+            <span class="th-pulse-dot"></span>
+            <span>{status_text}</span>
+        </div>
+        <div class="th-loader-tech-badge">
+            {badge_text}
+        </div>
+    </div>
+
+    <div class="th-loader-main-body">
+        <div class="th-loader-radar-wrapper">
+            <div class="th-loader-ring-outer"></div>
+            <div class="th-loader-ring-inner"></div>
+            <div class="th-loader-icon-center">🩺</div>
+        </div>
+        <div class="th-loader-text-block">
+            <div class="th-loader-heading">{heading_text}</div>
+            <div class="th-loader-subtext">{subtext}</div>
+        </div>
+    </div>
+
+    <!-- Animated ECG Heartbeat Wave -->
+    <div class="th-loader-ecg-container">
+        <svg class="th-loader-ecg-svg" viewBox="0 0 600 50" preserveAspectRatio="none">
+            <path class="th-loader-ecg-bg" d="M0,25 L120,25 L135,25 L145,5 L155,45 L165,15 L175,32 L185,25 L320,25 L335,25 L345,5 L355,45 L365,15 L375,32 L385,25 L500,25 L515,25 L525,5 L535,45 L545,15 L555,32 L565,25 L600,25" />
+            <path class="th-loader-ecg-pulse" d="M0,25 L120,25 L135,25 L145,5 L155,45 L165,15 L175,32 L185,25 L320,25 L335,25 L345,5 L355,45 L365,15 L375,32 L385,25 L500,25 L515,25 L525,5 L535,45 L545,15 L555,32 L565,25 L600,25" />
+        </svg>
+    </div>
+
+    <!-- 3-Step Pipeline Tracker -->
+    <div class="th-loader-steps-grid">
+        <div class="th-loader-step th-step-active">
+            <span class="th-step-icon">🔍</span>
+            <span class="th-step-label">{step1}</span>
+        </div>
+        <div class="th-loader-step th-step-pulse">
+            <span class="th-step-icon">🏥</span>
+            <span class="th-step-label">{step2}</span>
+        </div>
+        <div class="th-loader-step th-step-wait">
+            <span class="th-step-icon">💊</span>
+            <span class="th-step-label">{step3}</span>
+        </div>
+    </div>
+
+    <!-- Shimmer Progress Line -->
+    <div class="th-loader-shimmer-progress">
+        <div class="th-loader-shimmer-bar"></div>
+    </div>
+</div>
+"""
+    return "\n".join(line.strip() for line in html_card.splitlines())
+

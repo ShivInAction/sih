@@ -1,6 +1,7 @@
 """Main views, sidebars, tabs, and page headers."""
 import textwrap
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from src.config.constants import (
     UI_STRINGS,
@@ -123,9 +124,23 @@ def render_navbar():
     """Renders modern top pill navbar matching the reference design."""
     _render_html("""
 <div class="th-navbar">
-    <div class="th-nav-brand">
+    <div class="th-nav-brand" onclick="(function(){
+        try {
+            if (window.parent && window.parent.toggleMahaSidebar) {
+                window.parent.toggleMahaSidebar();
+            } else if (window.toggleMahaSidebar) {
+                window.toggleMahaSidebar();
+            } else {
+                var doc = window.parent.document || document;
+                var exp = doc.querySelector('[data-testid=stExpandSidebarButton]') || doc.querySelector('button[data-testid=stExpandSidebarButton]') || doc.querySelector('[data-testid=collapsedControl] button') || doc.querySelector('button[aria-label=\\'Open sidebar\\']');
+                var col = doc.querySelector('[data-testid=stSidebarCollapseButton]') || doc.querySelector('[data-testid=stSidebarCollapseButton] button') || doc.querySelector('button[aria-label=\\'Close sidebar\\']');
+                if (exp) { exp.click(); } else if (col) { col.click(); }
+            }
+        } catch(e) {}
+    })()" title="Click to Open/Close Sidebar (Settings, Language & Helplines)" style="cursor:pointer;">
         <div class="th-nav-logo">🩺</div>
         <span class="th-nav-title">MahaArogya Setu</span>
+        <span class="th-settings-badge" style="font-size:0.75rem;background:#E0F8F4;color:#0B5C54;padding:4px 12px;border-radius:999px;font-weight:700;margin-left:8px;border:1.5px solid #00D2B4;display:inline-flex;align-items:center;gap:5px;cursor:pointer;box-shadow:0 2px 6px rgba(0,210,180,0.15);">☰ Sidebar & Settings</span>
     </div>
     <div class="th-nav-links">
         <span class="th-nav-link" style="color:var(--primary-teal-deep);font-weight:700;">🟢 Rural Healthcare Portal</span>
@@ -516,53 +531,284 @@ def render_tabs(language):
                 status_class = "th-status-live" if item["status"] == "LIVE" else "th-status-beta" if item["status"] == "BETA" else "th-status-demo" if item["status"] == "DEMO" else "th-status-info" if item["status"] == "INFO" else "th-status-soon"
                 st.markdown(f"""<div class="th-roadmap-item"><span class="th-roadmap-phase {item['phase_class']}">{item['phase']}</span><div style="flex:1;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><strong style="color:#0F172A;font-size:0.95rem;">{item['title']}</strong><span class="th-feat-status {status_class}">{item['status']}</span></div><p style="font-size:0.85rem;color:#475569;margin:0;line-height:1.5;">{item['desc']}</p></div></div>""", unsafe_allow_html=True)
 def render_visibility_fix():
-    """All styling and contrast are handled cleanly via CSS in theme.py without client-side script overhead."""
-    pass
+    """Ensures sidebar can always be maximized/minimized with floating button, navbar toggle, and state observer."""
+    components.html(
+        """
+<script>
+(function() {
+    var p = window.parent;
+    if (!p) return;
+    var doc = p.document;
+    if (!doc) return;
+
+    // 1. Expand Helper
+    p.expandMahaSidebar = function() {
+        var expBtn = doc.querySelector('[data-testid="stExpandSidebarButton"]') ||
+                     doc.querySelector('button[data-testid="stExpandSidebarButton"]') ||
+                     doc.querySelector('[data-testid="collapsedControl"] button') ||
+                     doc.querySelector('button[aria-label="Open sidebar"]') ||
+                     doc.querySelector('button[aria-label*="sidebar" i]') ||
+                     doc.querySelector('header button');
+        if (expBtn) {
+            expBtn.click();
+            return true;
+        }
+        return false;
+    };
+
+    // 2. Collapse Helper
+    p.collapseMahaSidebar = function() {
+        var colBtn = doc.querySelector('[data-testid="stSidebarCollapseButton"]') ||
+                     doc.querySelector('[data-testid="stSidebarCollapseButton"] button') ||
+                     doc.querySelector('button[aria-label="Close sidebar"]') ||
+                     doc.querySelector('section[data-testid="stSidebar"] button');
+        if (colBtn) {
+            colBtn.click();
+            return true;
+        }
+        return false;
+    };
+
+    // 3. Global Toggle Helper (Called by Navbar and Floating Button)
+    p.toggleMahaSidebar = function() {
+        var sidebar = doc.querySelector('section[data-testid="stSidebar"]');
+        var isCollapsed = true;
+        if (sidebar) {
+            var aria = sidebar.getAttribute('aria-expanded');
+            if (aria === 'true') {
+                isCollapsed = false;
+            } else if (aria === 'false') {
+                isCollapsed = true;
+            } else {
+                var rect = sidebar.getBoundingClientRect();
+                isCollapsed = (rect.width <= 50 || rect.right <= 10);
+            }
+        }
+        if (isCollapsed) {
+            p.expandMahaSidebar();
+        } else {
+            p.collapseMahaSidebar();
+        }
+    };
+
+    // 4. Setup Floating "Open Sidebar" Button Attached to Document Body
+    function setupFloatingButton() {
+        var btnId = 'maha-maximize-sidebar-floating-btn';
+        var btn = doc.getElementById(btnId);
+        if (!btn) {
+            btn = doc.createElement('button');
+            btn.id = btnId;
+            btn.setAttribute('type', 'button');
+            btn.setAttribute('title', 'Open Sidebar (Language, Helplines & Settings)');
+            btn.innerHTML = '<span style="font-size:15px;font-weight:900;margin-right:6px;display:inline-block;transform:scale(1.2);">❯❯</span><span style="font-weight:800;font-size:0.82rem;letter-spacing:0.02em;">Sidebar</span>';
+
+            Object.assign(btn.style, {
+                position: 'fixed',
+                top: '12px',
+                left: '14px',
+                zIndex: '2147483647',
+                display: 'none',
+                alignItems: 'center',
+                background: '#FFFFFF',
+                color: '#0B2528',
+                border: '2px solid #00D2B4',
+                borderRadius: '999px',
+                padding: '7px 16px',
+                boxShadow: '0 4px 18px rgba(0, 210, 180, 0.40)',
+                cursor: 'pointer',
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                outline: 'none',
+                userSelect: 'none'
+            });
+
+            btn.onmouseenter = function() {
+                btn.style.background = '#E0F8F4';
+                btn.style.borderColor = '#00A892';
+                btn.style.transform = 'scale(1.06) translateY(-1px)';
+                btn.style.boxShadow = '0 6px 22px rgba(0, 210, 180, 0.55)';
+            };
+            btn.onmouseleave = function() {
+                btn.style.background = '#FFFFFF';
+                btn.style.borderColor = '#00D2B4';
+                btn.style.transform = 'scale(1) translateY(0)';
+                btn.style.boxShadow = '0 4px 18px rgba(0, 210, 180, 0.40)';
+            };
+            btn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                p.expandMahaSidebar();
+                btn.style.display = 'none';
+            };
+
+            doc.body.appendChild(btn);
+        }
+
+        function checkVisibility() {
+            var sidebar = doc.querySelector('section[data-testid="stSidebar"]');
+            var isCollapsed = true;
+            if (sidebar) {
+                var aria = sidebar.getAttribute('aria-expanded');
+                if (aria === 'true') {
+                    isCollapsed = false;
+                } else if (aria === 'false') {
+                    isCollapsed = true;
+                } else {
+                    var rect = sidebar.getBoundingClientRect();
+                    isCollapsed = (rect.width <= 50 || rect.right <= 10);
+                }
+            }
+            if (isCollapsed) {
+                btn.style.display = 'inline-flex';
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+
+        checkVisibility();
+
+        // Attach MutationObserver to sidebar so button shows/hides immediately on minimize/maximize
+        var sidebar = doc.querySelector('section[data-testid="stSidebar"]');
+        if (sidebar && !sidebar._mahaObserved) {
+            sidebar._mahaObserved = true;
+            var obs = new MutationObserver(function() {
+                checkVisibility();
+            });
+            obs.observe(sidebar, { attributes: true, attributeFilter: ['aria-expanded', 'style', 'class'] });
+        }
+
+        if (!p._mahaVisibilityInterval) {
+            p._mahaVisibilityInterval = setInterval(checkVisibility, 350);
+        }
+    }
+
+    setupFloatingButton();
+    setTimeout(setupFloatingButton, 200);
+    setTimeout(setupFloatingButton, 800);
+})();
+</script>
+""",
+        height=0,
+        width=0,
+    )
 
 
 def render_footer():
-    """Renders deep slate branded footer matching the reference design."""
+    """Renders deep slate branded footer with high-contrast, fully visible links and badges."""
     _render_html("""
+<style>
+  .th-footer, .th-footer * {
+    box-sizing: border-box !important;
+  }
+  .th-footer {
+    background: #0B2528 !important;
+    border-radius: 24px !important;
+    padding: 38px 38px 24px !important;
+    margin-top: 40px !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 10px 30px rgba(11,37,40,0.16) !important;
+  }
+  .th-footer a, .th-footer a:link, .th-footer a:visited {
+    text-decoration: none !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+    transition: all 0.2s ease !important;
+  }
+  .th-footer .th-ft-scheme {
+    color: #E0F8F4 !important;
+    -webkit-text-fill-color: #E0F8F4 !important;
+    font-weight: 600 !important;
+    font-size: 0.90rem !important;
+  }
+  .th-footer .th-ft-scheme:hover {
+    color: #00D2B4 !important;
+    -webkit-text-fill-color: #00D2B4 !important;
+    transform: translateX(4px) !important;
+  }
+  .th-footer .th-ft-hl-108 {
+    color: #FF8080 !important;
+    -webkit-text-fill-color: #FF8080 !important;
+    font-weight: 700 !important;
+    font-size: 0.90rem !important;
+  }
+  .th-footer .th-ft-hl-102 {
+    color: #FBBF24 !important;
+    -webkit-text-fill-color: #FBBF24 !important;
+    font-weight: 700 !important;
+    font-size: 0.90rem !important;
+  }
+  .th-footer .th-ft-hl-104 {
+    color: #2DD4BF !important;
+    -webkit-text-fill-color: #2DD4BF !important;
+    font-weight: 700 !important;
+    font-size: 0.90rem !important;
+  }
+  .th-footer .th-ft-hl-1098 {
+    color: #FDE047 !important;
+    -webkit-text-fill-color: #FDE047 !important;
+    font-weight: 700 !important;
+    font-size: 0.90rem !important;
+  }
+  .th-footer .th-ft-hl-181 {
+    color: #F472B6 !important;
+    -webkit-text-fill-color: #F472B6 !important;
+    font-weight: 700 !important;
+    font-size: 0.90rem !important;
+  }
+  .th-footer .th-ft-dist {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    font-weight: 600 !important;
+    font-size: 0.90rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+  }
+</style>
+
 <div class="th-footer">
     <div class="th-footer-grid">
         <div>
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
                 <div style="font-size:26px;">🩺</div>
-                <strong style="font-size:1.15rem;color:#FFFFFF;letter-spacing:-0.02em;">MahaArogya Setu</strong>
+                <strong style="font-size:1.18rem;color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;letter-spacing:-0.02em;">MahaArogya Setu</strong>
             </div>
-            <p style="font-size:0.86rem;color:#B3D1D3;line-height:1.55;margin:0 0 12px 0;">
+            <p style="font-size:0.88rem;color:#D1E7E5 !important;-webkit-text-fill-color:#D1E7E5 !important;line-height:1.6;margin:0 0 14px 0;">
                 Bridging healthcare accessibility across Maharashtra's underserved tribal and rural blocks. Real-time AI clinical triage and scheme navigation in English, हिंदी, and मराठी.
             </p>
-            <span style="font-size:0.75rem;background:rgba(0,210,180,0.15);color:#00D2B4;padding:4px 12px;border-radius:999px;font-weight:700;">
+            <span style="font-size:0.75rem;background:rgba(0,210,180,0.18);color:#00D2B4 !important;-webkit-text-fill-color:#00D2B4 !important;border:1px solid rgba(0,210,180,0.35);padding:5px 14px;border-radius:999px;font-weight:800;letter-spacing:0.04em;">
                 SMART INDIA HACKATHON • NHM
             </span>
         </div>
         <div>
-            <div class="th-footer-title">24×7 Helplines</div>
-            <a href="tel:108" class="th-footer-link" style="color:#FF8080;font-weight:700;">🚑 Ambulance: 108</a>
-            <a href="tel:102" class="th-footer-link" style="color:#FFD180;font-weight:700;">🤰 Janani Express: 102</a>
-            <a href="tel:104" class="th-footer-link">🏥 Health Advice: 104</a>
-            <a href="tel:1098" class="th-footer-link">🧒 Childline: 1098</a>
-            <a href="tel:181" class="th-footer-link">👩 Women Helpline: 181</a>
+            <div class="th-footer-title" style="color:#00D2B4 !important;-webkit-text-fill-color:#00D2B4 !important;font-size:0.96rem;font-weight:800;letter-spacing:0.06em;margin-bottom:14px;">24×7 Helplines</div>
+            <a href="tel:108" class="th-ft-hl-108" style="color:#FF8080 !important;-webkit-text-fill-color:#FF8080 !important;font-weight:700;">🚑 Ambulance: 108</a>
+            <a href="tel:102" class="th-ft-hl-102" style="color:#FBBF24 !important;-webkit-text-fill-color:#FBBF24 !important;font-weight:700;">🤰 Janani Express: 102</a>
+            <a href="tel:104" class="th-ft-hl-104" style="color:#2DD4BF !important;-webkit-text-fill-color:#2DD4BF !important;font-weight:700;">🏥 Health Advice: 104</a>
+            <a href="tel:1098" class="th-ft-hl-1098" style="color:#FDE047 !important;-webkit-text-fill-color:#FDE047 !important;font-weight:700;">🧒 Childline: 1098</a>
+            <a href="tel:181" class="th-ft-hl-181" style="color:#F472B6 !important;-webkit-text-fill-color:#F472B6 !important;font-weight:700;">👩 Women Helpline: 181</a>
         </div>
         <div>
-            <div class="th-footer-title">Schemes & Portals</div>
-            <a href="https://www.jeevandayee.gov.in" target="_blank" class="th-footer-link">MJPJAY Portal</a>
-            <a href="https://pmjay.gov.in" target="_blank" class="th-footer-link">Ayushman Bharat (PM-JAY)</a>
-            <a href="https://esanjeevani.in" target="_blank" class="th-footer-link">eSanjeevani Telemedicine</a>
-            <a href="https://abha.abdm.gov.in" target="_blank" class="th-footer-link">ABHA Digital Health ID</a>
-            <a href="https://janaushadhi.gov.in" target="_blank" class="th-footer-link">PM Jan Aushadhi Kendra</a>
+            <div class="th-footer-title" style="color:#00D2B4 !important;-webkit-text-fill-color:#00D2B4 !important;font-size:0.96rem;font-weight:800;letter-spacing:0.06em;margin-bottom:14px;">Schemes & Portals</div>
+            <a href="https://www.jeevandayee.gov.in" target="_blank" class="th-ft-scheme" style="color:#E0F8F4 !important;-webkit-text-fill-color:#E0F8F4 !important;font-weight:600;">🌐 MJPJAY Portal (₹5L)</a>
+            <a href="https://pmjay.gov.in" target="_blank" class="th-ft-scheme" style="color:#E0F8F4 !important;-webkit-text-fill-color:#E0F8F4 !important;font-weight:600;">🌐 Ayushman Bharat (PM-JAY)</a>
+            <a href="https://esanjeevani.in" target="_blank" class="th-ft-scheme" style="color:#E0F8F4 !important;-webkit-text-fill-color:#E0F8F4 !important;font-weight:600;">🩺 eSanjeevani Telemedicine</a>
+            <a href="https://abha.abdm.gov.in" target="_blank" class="th-ft-scheme" style="color:#E0F8F4 !important;-webkit-text-fill-color:#E0F8F4 !important;font-weight:600;">🪪 ABHA Digital Health ID</a>
+            <a href="https://janaushadhi.gov.in" target="_blank" class="th-ft-scheme" style="color:#E0F8F4 !important;-webkit-text-fill-color:#E0F8F4 !important;font-weight:600;">💊 PM Jan Aushadhi Kendra</a>
         </div>
         <div>
-            <div class="th-footer-title">Key Districts</div>
-            <span class="th-footer-link">📍 Nandurbar (Tribal Core)</span>
-            <span class="th-footer-link">📍 Gadchiroli (Aheri, Bhamragad)</span>
-            <span class="th-footer-link">📍 Amravati (Melghat Blocks)</span>
-            <span class="th-footer-link">📍 Palghar (Jawhar, Mokhada)</span>
-            <span class="th-footer-link">📍 Yavatmal (Pusad, City)</span>
+            <div class="th-footer-title" style="color:#00D2B4 !important;-webkit-text-fill-color:#00D2B4 !important;font-size:0.96rem;font-weight:800;letter-spacing:0.06em;margin-bottom:14px;">Key Districts</div>
+            <span class="th-ft-dist" style="color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:600;">📍 Nandurbar (Tribal Core)</span>
+            <span class="th-ft-dist" style="color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:600;">📍 Gadchiroli (Aheri, Bhamragad)</span>
+            <span class="th-ft-dist" style="color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:600;">📍 Amravati (Melghat Blocks)</span>
+            <span class="th-ft-dist" style="color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:600;">📍 Palghar (Jawhar, Mokhada)</span>
+            <span class="th-ft-dist" style="color:#FFFFFF !important;-webkit-text-fill-color:#FFFFFF !important;font-weight:600;">📍 Yavatmal (Pusad, City)</span>
         </div>
     </div>
-    <div class="th-footer-bottom">
+    <div class="th-footer-bottom" style="color:#B2D8D6 !important;-webkit-text-fill-color:#B2D8D6 !important;border-top:1px solid rgba(255,255,255,0.18);padding-top:18px;text-align:center;font-size:0.84rem;">
         MahaArogya Setu © 2026 · General Healthcare Awareness & Access Navigation · In severe symptoms, immediately call 108 or visit nearest District Hospital.
     </div>
 </div>

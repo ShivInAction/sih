@@ -35,15 +35,23 @@ def match_and_rank_facilities(district, required_services=None, facility_type=No
     Each reason string is a human-readable tag like "✅ Immunization match".
     """
     facilities_in_district = []
+    is_matched_district = False
     for dist_key, facs in MAHARASHTRA_DISTRICTS.items():
         pure_key = re.sub(r"[ऀ-ॿ() ]", "", dist_key).lower()
         if district and (district.lower() in pure_key or district.lower() in dist_key.lower()):
             facilities_in_district = facs
+            is_matched_district = True
             break
 
-    if not facilities_in_district:
+    if not is_matched_district:
+        # If user explicitly supplied a location/district (like Pari Chowk or Noida) that is NOT in Maharashtra,
+        # return empty list so dynamic AI facility locator (Gemini) handles it accurately.
+        if district and len(str(district).strip()) > 2:
+            return []
+        # Fallback only when no location was provided at all
         for facs in MAHARASHTRA_DISTRICTS.values():
             facilities_in_district.extend(facs)
+
 
     # Build a set of canonical requested services for matching
     _req_service_set = set()
