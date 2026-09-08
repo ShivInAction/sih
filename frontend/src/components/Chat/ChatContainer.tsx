@@ -13,6 +13,7 @@ export function ChatContainer({ lang, isLowBandwidth, isSidebarOpen = true }: { 
   const [isListening, setIsListening] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   // Auto-scroll to bottom only when conversation starts
   useEffect(() => {
@@ -21,11 +22,33 @@ export function ChatContainer({ lang, isLowBandwidth, isSidebarOpen = true }: { 
     }
   }, [messages, isLoading]);
 
+  // Clean up recognition on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
+      }
+    };
+  }, []);
+
   const t = {
     en: { placeholder: "Type your symptoms or ask about hospitals, schemes, ABHA..." },
     hi: { placeholder: "अपने लक्षण या स्वास्थ्य प्रश्न बताएं..." },
     mr: { placeholder: "तुमची लक्षणे किंवा आरोग्य प्रश्न सांगा..." }
   }[lang as "en"|"hi"|"mr"] || { placeholder: "Type your symptoms..." };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+    setInterimTranscript("");
+  };
 
   const toggleListening = () => {
     // @ts-ignore
@@ -36,51 +59,60 @@ export function ChatContainer({ lang, isLowBandwidth, isSidebarOpen = true }: { 
     }
 
     if (isListening) {
-      // Just set state to false, the onend event will handle cleanup
-      setIsListening(false);
+      stopListening();
       return;
     }
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = lang === 'hi' ? 'hi-IN' : lang === 'mr' ? 'mr-IN' : 'en-US';
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = lang === 'hi' ? 'hi-IN' : lang === 'mr' ? 'mr-IN' : 'en-US';
+      recognition.continuous = true;
+      recognition.interimResults = true;
 
-    recognition.onstart = () => {
-      setIsListening(true);
-      setInterimTranscript("");
-    };
-    
-    recognition.onresult = (event: any) => {
-      let finalTrans = "";
-      let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTrans += event.results[i][0].transcript;
-        } else {
-          interim += event.results[i][0].transcript;
+      recognition.onstart = () => {
+        setIsListening(true);
+        setInterimTranscript("");
+      };
+      
+      recognition.onresult = (event: any) => {
+        let finalTrans = "";
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTrans += event.results[i][0].transcript;
+          } else {
+            interim += event.results[i][0].transcript;
+          }
         }
-      }
-      if (finalTrans) {
-        setInput((prev) => prev + (prev ? " " : "") + finalTrans);
-      }
-      setInterimTranscript(interim);
-    };
+        if (finalTrans) {
+          setInput((prev) => prev + (prev ? " " : "") + finalTrans);
+        }
+        setInterimTranscript(interim);
+      };
 
-    recognition.onerror = () => {
-      setIsListening(false);
-      setInterimTranscript("");
-    };
-    recognition.onend = () => {
-      setIsListening(false);
-      setInterimTranscript("");
-    };
+      recognition.onerror = () => {
+        stopListening();
+      };
+      recognition.onend = () => {
+        setIsListening(false);
+        setInterimTranscript("");
+        recognitionRef.current = null;
+      };
 
-    recognition.start();
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (e) {
+      console.error("Speech recognition start failed:", e);
+      stopListening();
+    }
   };
 
   const handleSend = async (e?: React.FormEvent, overrideInput?: string) => {
     e?.preventDefault();
+    
+    // Automatically stop voice recording when sending
+    stopListening();
+
     const finalInput = overrideInput || input;
     if (!finalInput.trim() || isLoading) return;
 

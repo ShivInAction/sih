@@ -188,10 +188,13 @@ Provide a VERY SHORT, CONCISE, and direct clinical triage answer in {response_la
 
     candidate_models = [
         DEFAULT_GEMINI_MODEL,
-        "gemini-3.5-flash",
-        "gemini-3.6-flash",
-        "gemini-3.7-flash",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
         "gemini-flash-latest",
+        "gemini-3.5-flash",
+        "gemini-3.7-flash",
         FALLBACK_GEMINI_MODEL,
     ]
     seen = set()
@@ -309,10 +312,13 @@ Provide the nearest hospitals, emergency fever facilities, and navigation detail
 
     candidate_models = [
         DEFAULT_GEMINI_MODEL,
-        "gemini-3.5-flash",
-        "gemini-3.6-flash",
-        "gemini-3.7-flash",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
         "gemini-flash-latest",
+        "gemini-3.5-flash",
+        "gemini-3.7-flash",
         FALLBACK_GEMINI_MODEL,
     ]
     seen = set()
@@ -506,69 +512,117 @@ def _format_facility_ai_response_card(text: str, model_used: str, location_tag: 
 """
     return "\n".join(line.strip() for line in card_html.splitlines())
 
-    parsed_html = _make_phone_numbers_clickable(parsed_html)
-
-    loc_display = f"📍 {location_tag}" if location_tag else "📍 Nearest Healthcare"
-    disclaimer = (
-        "हे एआय द्वारे शोधलेले जवळचे रुग्णालय मार्गदर्शन आहे. गंभीर आपत्कालीन परिस्थितीत त्वरित १०८ रुग्णवाहिका किंवा ११२ क्रमांकावर संपर्क साधा."
-        if lang == "mr"
-        else (
-            "यह एआई द्वारा खोजा गया निकटतम अस्पताल मार्गदर्शन है। गंभीर आपातकाल में तुरंत 108 एम्बुलेंस या 112 डायल करें।"
-            if lang == "hi"
-            else "AI-powered nearest hospital locator. In a critical emergency, immediately dial 108 Ambulance or 112."
-        )
-    )
-
-    card_html = f"""
-<div class="th-dx-card" style="border: 2px solid #00A892; box-shadow: 0 8px 26px rgba(0, 168, 146, 0.14); margin-bottom: 20px;">
-    <div class="th-dx-header" style="background: linear-gradient(135deg, #0B2528 0%, #007A6C 100%); padding: 14px 20px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-size:24px;">🏥</span>
-            <div>
-                <strong style="font-size:1.02rem;color:#FFFFFF;display:block;">MahaArogya Smart Healthcare Locator</strong>
-            </div>
-        </div>
-        <span style="font-size:0.75rem;background:rgba(255,255,255,0.22);color:#FFFFFF;padding:4px 12px;border-radius:999px;font-weight:700;">
-            {loc_display}
-        </span>
-    </div>
-    <div class="th-dx-body" style="padding:22px 26px;color:#0B2528;font-size:0.95rem;line-height:1.85;">
-        {parsed_html}
-        <div style="margin-top:22px;padding:14px 18px;background:#F0FAF8;border-left:4px solid #00A892;border-radius:8px;font-size:0.84rem;color:#234745;line-height:1.65;">
-            🚑 <strong>Emergency Response:</strong> Dial <a href="tel:108" style="color:#007A6C;font-weight:bold;text-decoration:underline;">108</a> (Ambulance) or <a href="tel:112" style="color:#007A6C;font-weight:bold;text-decoration:underline;">112</a> (National Helpline). Cashless treatment up to ₹5 Lakh under <strong>Ayushman Bharat PM-JAY</strong> at empaneled hospitals.<br/>
-            <span style="color:#52706D;font-size:0.78rem;margin-top:6px;display:block;">ℹ️ {disclaimer}</span>
-        </div>
-    </div>
-</div>
-"""
-    return "\n".join(line.strip() for line in card_html.splitlines())
-
-
-
 
 def _format_ai_response_card(text: str, model_used: str, lang: str) -> str:
-    """Format the raw Markdown from Gemini Flash into our clinical landing card design."""
-    try:
-        import markdown
-        parsed_html = markdown.markdown(text, extensions=["extra", "nl2br"])
-    except Exception:
-        import re
-        # Lightweight built-in markdown parser
-        lines = []
-        for l in text.splitlines():
-            l = html.escape(l)
-            l = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", l)
-            l = re.sub(r"\*(.*?)\*", r"<em>\1</em>", l)
-            if l.startswith("### "): lines.append(f"<h4 style='color:#0B2528;margin:10px 0 4px;'>{l[4:]}</h4>")
-            elif l.startswith("## "): lines.append(f"<h3 style='color:#0B2528;margin:12px 0 6px;'>{l[3:]}</h3>")
-            elif l.startswith("# "): lines.append(f"<h2 style='color:#0B2528;margin:14px 0 8px;'>{l[2:]}</h2>")
-            elif l.startswith("- ") or l.startswith("* "): lines.append(f"<li>{l[2:]}</li>")
-            else: lines.append(f"<p style='margin:4px 0;'>{l}</p>" if l.strip() else "<br/>")
-        parsed_html = "\n".join(lines)
+    """Format the raw Markdown from Gemini Flash into our clinical landing card design with clear visual hierarchy."""
+    import re
+    
+    lines = []
+    in_red_flag = False
+    in_helpline = False
+    
+    for raw_line in text.splitlines():
+        l = raw_line.strip()
+        if not l:
+            continue
+            
+        # 1. Triage Status / Assessment banner
+        if re.search(r"(स्थिति|Status|Assessment|Triage|अवस्था):", l, re.IGNORECASE) or "🟢" in l or "🟡" in l or "🚨" in l:
+            # Format as prominent status banner
+            clean_status = l.replace("**", "").replace("*", "").strip()
+            bg_color = "#E6FBF7" if "🟢" in l or "MILD" in l.upper() or "सामान्य" in l else ("#FFF8E1" if "🟡" in l or "MODERATE" in l.upper() else "#FFEBEE")
+            border_color = "#00D2B4" if "🟢" in l or "MILD" in l.upper() or "सामान्य" in l else ("#FFB300" if "🟡" in l or "MODERATE" in l.upper() else "#E53E3E")
+            text_color = "#0B2528" if "🟢" in l or "MILD" in l.upper() or "सामान्य" in l else ("#8D6E63" if "🟡" in l or "MODERATE" in l.upper() else "#C62828")
+            
+            lines.append(
+                f"<div style='background:{bg_color}; border:1.5px solid {border_color}; border-radius:12px; padding:12px 16px; margin:8px 0 14px 0;'>"
+                f"<strong style='color:{text_color}; font-size:1.05rem; display:block; margin-bottom:4px;'>{clean_status}</strong>"
+                f"</div>"
+            )
+            continue
+            
+        # 2. Section Headers
+        is_red_flag_header = bool(re.search(r"(खतरे के लक्षण|Red Flag|धोक्याची लक्षणे|Emergency Signs)", l, re.IGNORECASE))
+        is_helpline_header = bool(re.search(r"(सरकारी सहायता|Helpline|Government Help|शासकीय मदत)", l, re.IGNORECASE))
+        is_care_header = bool(re.search(r"(मुख्य देखभाल|Key Action|Care|सुझाव|काळजी|उपाय)", l, re.IGNORECASE))
+        
+        if is_red_flag_header:
+            in_red_flag = True
+            in_helpline = False
+            clean_header = l.replace("**", "").replace("*", "").strip()
+            lines.append(
+                f"<div style='background:#FFF5F5; border-left:4px solid #E53E3E; border-radius:10px; padding:12px 16px; margin:16px 0 10px 0;'>"
+                f"<strong style='color:#C53030; font-size:0.95rem; display:flex; align-items:center; gap:6px; margin-bottom:6px;'>🚨 {clean_header}</strong>"
+            )
+            continue
+            
+        if is_helpline_header:
+            if in_red_flag:
+                lines.append("</div>")
+                in_red_flag = False
+            in_helpline = True
+            clean_header = l.replace("**", "").replace("*", "").strip()
+            lines.append(
+                f"<div style='background:#F0FAF8; border:1.5px solid #00D2B4; border-radius:12px; padding:14px 16px; margin:16px 0 10px 0;'>"
+                f"<strong style='color:#007A6C; font-size:0.95rem; display:flex; align-items:center; gap:6px; margin-bottom:8px;'>🏛️ {clean_header}</strong>"
+            )
+            continue
+            
+        if is_care_header:
+            if in_red_flag or in_helpline:
+                lines.append("</div>")
+                in_red_flag = False
+                in_helpline = False
+            clean_header = l.replace("**", "").replace("*", "").strip()
+            lines.append(
+                f"<div style='margin-top:16px; margin-bottom:10px; padding-bottom:4px; border-bottom:1.5px solid #E0F5F2;'>"
+                f"<strong style='color:#0B2528; font-size:1.02rem; display:flex; align-items:center; gap:6px;'>🩺 {clean_header}</strong>"
+                f"</div>"
+            )
+            continue
 
+        # 3. Format Bullet Items
+        formatted = l
+        is_bullet = formatted.startswith("* ") or formatted.startswith("- ") or formatted.startswith("• ")
+        if is_bullet:
+            formatted = formatted[2:].strip()
+            
+        formatted = html.escape(formatted)
+        formatted = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", formatted)
+        formatted = re.sub(r"\*(.*?)\*", r"<em>\1</em>", formatted)
+        
+        if in_red_flag:
+            lines.append(f"<div style='margin:4px 0; color:#4A5568; line-height:1.7; font-size:0.9rem;'>• {formatted}</div>")
+        elif in_helpline:
+            lines.append(f"<div style='margin:4px 0; color:#234745; line-height:1.7; font-size:0.9rem;'>{formatted}</div>")
+        elif is_bullet:
+            lines.append(
+                f"<div style='background:#FAFDFD; border:1px solid #E6F4F2; border-radius:10px; padding:10px 14px; margin:8px 0; line-height:1.7; font-size:0.92rem; color:#0B2528; display:flex; align-items:start; gap:8px;'>"
+                f"<span style='color:#00A892; font-weight:bold;'>✓</span>"
+                f"<div>{formatted}</div>"
+                f"</div>"
+            )
+        else:
+            lines.append(f"<p style='margin:8px 0; line-height:1.8; color:#2D3748; font-size:0.92rem;'>{formatted}</p>")
+
+    if in_red_flag or in_helpline:
+        lines.append("</div>")
+        
+    parsed_html = "\n".join(lines)
+    
+    # Auto-make 108, 102, 104 into interactive call buttons inside text
+    parsed_html = re.sub(
+        r'(?<!\d)(108)(?!\d)',
+        r'<a href="tel:108" style="background:#E53E3E; color:#FFFFFF; font-weight:800; padding:2px 8px; border-radius:6px; text-decoration:none; display:inline-flex; align-items:center; gap:3px; margin:0 2px;">🚑 108 Call</a>',
+        parsed_html
+    )
+    parsed_html = re.sub(
+        r'(?<!\d)(104)(?!\d)',
+        r'<a href="tel:104" style="background:#00A892; color:#FFFFFF; font-weight:800; padding:2px 8px; border-radius:6px; text-decoration:none; display:inline-flex; align-items:center; gap:3px; margin:0 2px;">📞 104 Advice</a>',
+        parsed_html
+    )
     parsed_html = _make_phone_numbers_clickable(parsed_html)
 
-    badge_title = "✨ GEMINI FLASH CLINICAL AI TRIAGE"
     disclaimer = (
         "हे एआय आधारित प्राथमिक मार्गदर्शन आहे. गंभीर लक्षणांमध्ये त्वरित १०८ रुग्णवाहिका किंवा शासकीय जिल्हा रुग्णालयात संपर्क साधावा."
         if lang == "mr"
@@ -580,22 +634,21 @@ def _format_ai_response_card(text: str, model_used: str, lang: str) -> str:
     )
 
     card_html = f"""
-<div class="th-dx-card" style="border: 2px solid #00D2B4; box-shadow: 0 8px 26px rgba(0, 210, 180, 0.12); margin-bottom: 16px;">
-    <div class="th-dx-header" style="background: linear-gradient(135deg, #0B2528 0%, #00A892 100%);">
+<div class="th-dx-card" style="border: 2px solid #00D2B4; box-shadow: 0 8px 26px rgba(0, 210, 180, 0.12); margin-bottom: 16px; border-radius: 16px; overflow: hidden; background: #FFFFFF;">
+    <div class="th-dx-header" style="background: linear-gradient(135deg, #0B2528 0%, #00A892 100%); padding: 14px 20px;">
         <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-size:24px;">🩺</span>
             <div>
-                <strong style="font-size:1.02rem;color:#FFFFFF;display:block;">MahaArogya AI Clinical Consultant</strong>
-                <span style="font-size:0.72rem;color:#E0F8F4;font-weight:700;letter-spacing:0.04em;">{badge_title}</span>
+                <strong style="font-size:1.05rem;color:#FFFFFF;display:block;">MahaArogya AI Clinical Consultant</strong>
             </div>
         </div>
-        <span style="font-size:0.72rem;background:rgba(255,255,255,0.2);color:#FFFFFF;padding:4px 10px;border-radius:999px;font-weight:700;">
+        <span style="font-size:0.72rem;background:rgba(255,255,255,0.2);color:#FFFFFF;padding:4px 12px;border-radius:999px;font-weight:700;">
             SIH Clinical Core
         </span>
     </div>
-    <div class="th-dx-body" style="padding:16px 20px;color:#0B2528;font-size:0.92rem;line-height:1.55;">
+    <div class="th-dx-body" style="padding:20px 24px;color:#0B2528;font-size:0.94rem;line-height:1.75;">
         {parsed_html}
-        <div style="margin-top:12px;padding:8px 12px;background:#F2FBF9;border-left:4px solid #00D2B4;border-radius:8px;font-size:0.78rem;color:#3D585B;">
+        <div style="margin-top:16px;padding:10px 14px;background:#F2FBF9;border-left:4px solid #00D2B4;border-radius:8px;font-size:0.80rem;color:#3D585B;">
             ⚠️ <strong>Disclaimer:</strong> {disclaimer}
         </div>
     </div>

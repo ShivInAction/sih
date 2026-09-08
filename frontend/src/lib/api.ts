@@ -52,3 +52,21 @@ export async function fetchTriage(query: string, language: string = "en", low_ba
   if (!res.ok) throw new Error("Failed to process triage query");
   return res.json();
 }
+
+export async function getGeminiConfig() {
+  const res = await fetch(`${getApiBase()}/config/gemini`);
+  if (!res.ok) throw new Error("Failed to fetch Gemini status");
+  return res.json();
+}
+
+export async function saveGeminiApiKey(apiKey: string) {
+  const res = await fetch(`${getApiBase()}/config/gemini`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ api_key: apiKey }),
+  });
+  if (!res.ok) throw new Error("Failed to save API key");
+  return res.json();
+}

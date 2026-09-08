@@ -284,3 +284,61 @@ async def get_abha_info(lang: str = Query("en", description="Language: 'en', 'hi
     """Return ABHA (Ayushman Bharat Health Account) creation guide."""
     info = ABHA_INFO.get(lang, ABHA_INFO.get("en", {}))
     return {"language": lang, "abha": info}
+
+
+class GeminiKeyRequest(BaseModel):
+    api_key: str = Field(..., min_length=5, max_length=200, description="Google Gemini API Key")
+
+
+@app.get("/api/config/gemini", tags=["Configuration"])
+async def get_gemini_status():
+    """Check if Gemini API key is configured and return status."""
+    from src.ml.gemini_client import get_gemini_api_key
+    key = get_gemini_api_key()
+    has_key = bool(key and len(key) >= 10)
+    masked_key = f"{key[:6]}...{key[-4:]}" if has_key and len(key) > 10 else ("Configured" if has_key else "")
+    return {
+        "has_key": has_key,
+        "masked_key": masked_key,
+        "model": "Gemini 2.5 Flash",
+    }
+
+
+@app.post("/api/config/gemini", tags=["Configuration"])
+async def set_gemini_key(req: GeminiKeyRequest):
+    """Save Gemini API key to environment and .env file."""
+    clean_key = req.api_key.strip()
+    if not clean_key:
+        return {"status": "error", "message": "API key cannot be empty"}
+
+    os.environ["GEMINI_API_KEY"] = clean_key
+
+    # Save to .env in project root
+    try:
+        project_root = os.path.dirname(os.path.abspath(__file__))
+        env_path = os.path.join(project_root, ".env")
+        lines = []
+        key_found = False
+        if os.path.exists(env_path):
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.strip().startswith("GEMINI_API_KEY="):
+                        lines.append(f"GEMINI_API_KEY={clean_key}\n")
+                        key_found = True
+                    else:
+                        lines.append(line)
+        if not key_found:
+            lines.append(f"\nGEMINI_API_KEY={clean_key}\n")
+
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+    except Exception as exc:
+        logger.warning(f"Could not persist API key to .env file: {exc}")
+
+    masked = f"{clean_key[:6]}...{clean_key[-4:]}" if len(clean_key) > 10 else "Configured"
+    return {
+        "status": "success",
+        "has_key": True,
+        "masked_key": masked,
+        "message": "Gemini API key saved successfully"
+    }

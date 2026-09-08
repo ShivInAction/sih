@@ -1,7 +1,53 @@
 "use client";
-import { Zap, Phone } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Zap, Phone, Key, Sparkles, Check, AlertCircle } from "lucide-react";
+import { getGeminiConfig, saveGeminiApiKey } from "@/lib/api";
 
 export function Sidebar({ lang, setLang, isOpen, setIsOpen, isLowBandwidth, setIsLowBandwidth }: { lang: string, setLang: (l: string) => void, isOpen: boolean, setIsOpen: (o: boolean) => void, isLowBandwidth: boolean, setIsLowBandwidth: (b: boolean) => void }) {
+  const [geminiStatus, setGeminiStatus] = useState<{ has_key: boolean; masked_key: string; model: string } | null>(null);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [isEditingKey, setIsEditingKey] = useState(false);
+  const [isSavingKey, setIsSavingKey] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
+  useEffect(() => {
+    getGeminiConfig()
+      .then((data) => {
+        setGeminiStatus(data);
+        if (!data.has_key) {
+          setIsEditingKey(true);
+        }
+      })
+      .catch(() => {
+        setGeminiStatus({ has_key: false, masked_key: "", model: "Gemini 2.5 Flash" });
+        setIsEditingKey(true);
+      });
+  }, []);
+
+  const handleSaveKey = async () => {
+    if (!apiKeyInput.trim()) return;
+    setIsSavingKey(true);
+    setSaveMessage(null);
+    try {
+      const res = await saveGeminiApiKey(apiKeyInput.trim());
+      if (res.status === "success") {
+        setGeminiStatus({ has_key: true, masked_key: res.masked_key, model: "Gemini 2.5 Flash" });
+        setIsEditingKey(false);
+        setApiKeyInput("");
+        setSaveMessage({ text: "API Key Connected Successfully!", type: "success" });
+        setTimeout(() => setSaveMessage(null), 3500);
+      } else {
+        setSaveMessage({ text: res.message || "Failed to save API key", type: "error" });
+        setTimeout(() => setSaveMessage(null), 3500);
+      }
+    } catch (e) {
+      setSaveMessage({ text: "Failed to connect to backend", type: "error" });
+      setTimeout(() => setSaveMessage(null), 3500);
+    } finally {
+      setIsSavingKey(false);
+    }
+  };
+
   return (
     <div className={`w-64 bg-[#f8f9fa] h-screen fixed left-0 top-0 border-r border-gray-200 overflow-y-auto hidden md:flex flex-col flex-shrink-0 z-40 transition-transform duration-300 pt-14 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       
@@ -58,11 +104,85 @@ export function Sidebar({ lang, setLang, isOpen, setIsOpen, isLowBandwidth, setI
 
       {/* AI Engine */}
       <div className="p-4 border-b border-gray-200">
-        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">AI ENGINE</h3>
-        <div className="bg-[#e6f4ea] border border-[#ceead6] rounded-lg p-2.5 flex items-center gap-2 text-xs font-bold text-[#137333]">
-          ✨ Gemini 2.5 Flash Active
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles size={13} className="text-clinical-teal" /> AI ENGINE
+          </h3>
+          {geminiStatus?.has_key && (
+            <button
+              onClick={() => setIsEditingKey(!isEditingKey)}
+              className="text-[11px] font-semibold text-clinical-teal hover:underline"
+            >
+              {isEditingKey ? "Hide" : "+ Add API"}
+            </button>
+          )}
         </div>
+
+        {saveMessage && (
+          <div className={`mb-2.5 p-2 rounded text-xs font-semibold flex items-center gap-1.5 ${saveMessage.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-red-50 text-red-800 border border-red-200"}`}>
+            {saveMessage.type === "success" ? <Check size={13} className="shrink-0" /> : <AlertCircle size={13} className="shrink-0" />}
+            <span>{saveMessage.text}</span>
+          </div>
+        )}
+
+        {geminiStatus?.has_key ? (
+          <div className="bg-[#e6f4ea] border border-[#ceead6] rounded-lg p-2.5 flex items-center gap-2 text-xs font-bold text-[#137333]">
+            <span>✨</span>
+            <span>Gemini 2.5 Flash Active</span>
+          </div>
+        ) : (
+          <div className="bg-gray-100 border border-gray-200 rounded-lg p-2.5 flex items-center gap-2 text-xs font-semibold text-gray-600">
+            <span>⚪</span>
+            <span>Gemini Inactive (Add Key below)</span>
+          </div>
+        )}
       </div>
+
+      {/* ADD API Box — automatically hides once saved */}
+      {(!geminiStatus?.has_key || isEditingKey) && (
+        <div className="p-4 border-b border-gray-200 bg-white">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Key size={13} className="text-clinical-teal" /> ADD API
+            </h3>
+            {geminiStatus?.has_key && (
+              <button
+                onClick={() => setIsEditingKey(false)}
+                className="text-[10px] text-gray-400 hover:text-gray-700"
+              >
+                Close ✕
+              </button>
+            )}
+          </div>
+
+          <div className="border border-gray-200 rounded-lg p-3 shadow-xs space-y-2.5 bg-[#fcfdfd]">
+            <input
+              type="password"
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
+              placeholder="Enter Gemini API Key..."
+              className="w-full text-xs px-2.5 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-clinical-teal bg-white text-gray-800 placeholder-gray-400 font-mono"
+            />
+
+            <button
+              onClick={handleSaveKey}
+              disabled={isSavingKey || !apiKeyInput.trim()}
+              className="w-full text-xs font-bold py-1.5 px-3 bg-clinical-teal text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-xs"
+            >
+              {isSavingKey ? "Saving..." : "Save API Key ✓"}
+            </button>
+
+            <a
+              href="https://aistudio.google.com/app/apikey"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-teal-700 hover:underline flex items-center justify-center gap-1 pt-0.5 font-medium"
+            >
+              Get Free Key (Google AI Studio) ↗
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Helplines */}
       <div className="p-4">

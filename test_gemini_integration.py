@@ -42,7 +42,7 @@ class TestGeminiIntegration(unittest.TestCase):
         raw_text = "### Immediate Assessment\nPatient has mild viral symptoms.\n\n* Take rest\n* Drink ORS"
         card_html = _format_ai_response_card(raw_text, DEFAULT_GEMINI_MODEL, "en")
         self.assertIn("th-dx-card", card_html)
-        self.assertIn("GEMINI FLASH CLINICAL AI TRIAGE", card_html)
+        self.assertIn("MahaArogya AI Clinical Consultant", card_html)
         self.assertIn("Immediate Assessment", card_html)
         self.assertIn("Disclaimer", card_html)
 
