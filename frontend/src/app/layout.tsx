@@ -7,6 +7,13 @@ const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "MahaArogya Setu",
   description: "Rural Healthcare Access Platform for Maharashtra",
+  manifest: "/manifest.json",
+  themeColor: "#00D2B4",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "MahaArogya",
+  },
 };
 
 export default function RootLayout({

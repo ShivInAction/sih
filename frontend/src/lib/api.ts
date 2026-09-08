@@ -1,14 +1,19 @@
 // API client to interact with the FastAPI backend running on port 8000
-const API_BASE = "http://localhost:8000/api";
+const getApiBase = () => {
+  if (typeof window !== "undefined") {
+    return `http://${window.location.hostname}:8000/api`;
+  }
+  return "http://localhost:8000/api";
+};
 
 export async function fetchSchemes() {
-  const res = await fetch(`${API_BASE}/schemes`);
+  const res = await fetch(`${getApiBase()}/schemes`);
   if (!res.ok) throw new Error("Failed to fetch schemes");
   return res.json();
 }
 
 export async function fetchDistricts() {
-  const res = await fetch(`${API_BASE}/districts`);
+  const res = await fetch(`${getApiBase()}/districts`);
   if (!res.ok) throw new Error("Failed to fetch districts");
   return res.json();
 }
@@ -18,25 +23,25 @@ export async function fetchFacilities(district?: string, service?: string) {
   if (district) params.append("district", district);
   if (service) params.append("service", service);
   
-  const res = await fetch(`${API_BASE}/facilities?${params.toString()}`);
+  const res = await fetch(`${getApiBase()}/facilities?${params.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch facilities");
   return res.json();
 }
 
 export async function fetchSchedules() {
-  const res = await fetch(`${API_BASE}/schedules`);
+  const res = await fetch(`${getApiBase()}/schedules`);
   if (!res.ok) throw new Error("Failed to fetch schedules");
   return res.json();
 }
 
 export async function fetchMedicines() {
-  const res = await fetch(`${API_BASE}/medicines`);
+  const res = await fetch(`${getApiBase()}/medicines`);
   if (!res.ok) throw new Error("Failed to fetch medicines");
   return res.json();
 }
 
 export async function fetchTriage(query: string, language: string = "en", low_bandwidth: boolean = false) {
-  const res = await fetch(`${API_BASE}/triage`, {
+  const res = await fetch(`${getApiBase()}/triage`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -17,6 +17,9 @@ export default function Home() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       window.scrollTo(0, 0);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").catch(console.error);
+      }
     }
   }, []);
 
