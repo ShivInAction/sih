@@ -100,7 +100,7 @@ BLOCK_COORDS = {
 # Government Schemes and Schedules
 MAHARASHTRA_SCHEMES = [
     {"name":"Mahatma Jyotirao Phule Jan Arogya Yojana (MJPJAY)","benefits":"Cashless treatment up to ₹5,00,000/family/year for 996 identified procedures.","eligibility":"Yellow, Orange, AAY, Annapurna Ration cards. Farmers in 14 distressed districts. Eligibility depends on scheme rules — verify through official channel.","apply_how":"Visit any empanelled hospital → 'Arogyamitra' desk with Ration Card + Aadhaar.","what_to_carry":"Yellow/Orange/AAY Ration Card, Aadhaar Card","verify_at":"Visit arogyamitra desk at empanelled hospital or call 1800-233-2085","source":"maha.gov.in","status":"LIVE"},
-    {"name":"Ayushman Bharat - PMJAY (Integrated with MJPJAY)","benefits":"Cashless cover up to ₹5,00,000/family/year for secondary & tertiary care.","eligibility":"SECC 2011 identified poor & vulnerable families. Eligibility depends on scheme rules — verify through official channel.","apply_how":"Verify at pmjay.gov.in or contact Arogyamitra at any empanelled facility.","what_to_carry":"Aadhaar Card, Ration Card","verify_at":"pmjay.gov.in or call 14555","source":"pmjay.gov.in","status":"LIVE"},
+    {"name":"Ayushman Bharat - PMJAY (Integrated with MJPJAY)","benefits":"Cashless cover up to ₹5,00,000/family/year for secondary & tertiary care.","eligibility":"SECC 2011 identified poor & vulnerable families. Eligibility depends on scheme rules — verify through official channel.","apply_how":"Verify at abdm.gov.in or contact Arogyamitra at any empanelled facility.","what_to_carry":"Aadhaar Card, Ration Card","verify_at":"abdm.gov.in or call 14555","source":"abdm.gov.in","status":"LIVE"},
     {"name":"Balasaheb Thackeray Aapla Dawakhana","benefits":"Free primary consults, essential medicines, 147 free diagnostic tests.","eligibility":"All Maharashtra citizens; focus on urban slums & rural pockets.","apply_how":"Walk-in directly to any Aapla Dawakhana clinic. No prior registration.","what_to_carry":"No documents required for basic consult","verify_at":"Contact nearest municipal health post","source":"MCGM / Maharashtra Health Dept","status":"LIVE"},
     {"name":"Navsanjivan Yojana (Tribal Focus)","benefits":"Specialized medical squads to tribal blocks, free maternal supplements, transport cash aid.","eligibility":"Tribal residents of 16 designated tribal districts of Maharashtra. Verify eligibility through block ICDS officer.","apply_how":"Coordinated through block ICDS officers, local ASHAs, or ANM workers.","what_to_carry":"Tribal certificate, Aadhaar Card","verify_at":"Block ICDS office or Tribal Development Dept","source":"Tribal Development Dept, Maharashtra","status":"LIVE"},
     {"name":"Janani Suraksha Yojana (JSY)","benefits":"₹700 cash + free institutional delivery for rural pregnant women.","eligibility":"All pregnant women in rural areas of Maharashtra (BPL preferred). Verify through ASHA or PHC.","apply_how":"Register at PHC/Sub-Centre through ASHA worker during first ANC visit.","what_to_carry":"Aadhaar Card, Bank Passbook, MCP Card","verify_at":"Nearest PHC/Sub-Centre or call ASHA worker","source":"National Health Mission","status":"LIVE"},
@@ -559,7 +559,7 @@ UI_STRINGS = {
         "loc_ref": "ℹ️ Facility data is for reference. Please verify phone numbers and services before visiting. Data sourced from public health directories.",
         "loc_sel": "📍 Select District / Region:", "loc_show": "Showing <strong>{c} reference facilities</strong> in <strong>{d}</strong>",
         "sch_title": "📋 Maharashtra Government Health Schemes",
-        "sch_desc": "Reference information on cashless treatment schemes. Verify current details at your nearest government hospital or pmjay.gov.in.",
+        "sch_desc": "Reference information on cashless treatment schemes. Verify current details at your nearest government hospital or abdm.gov.in.",
         "anc_title": "🤰 Antenatal Care (ANC) Schedule",
         "anc_desc": "Reference schedule — based on public health guidelines. Confirm with your local PHC/CHC.",
         "uip_title": "💉 Universal Immunization Programme (UIP)",
@@ -612,7 +612,7 @@ UI_STRINGS = {
         "loc_ref": "ℹ️ सुविधा डेटा संदर्भ के लिए है। कृपया जाने से पहले फोन नंबर और सेवाओं की पुष्टि करें।",
         "loc_sel": "📍 जिला / क्षेत्र चुनें:", "loc_show": "<strong>{d}</strong> में <strong>{c} संदर्भ सुविधाएं</strong> दिखा रहे हैं",
         "sch_title": "📋 महाराष्ट्र सरकारी स्वास्थ्य योजनाएं",
-        "sch_desc": "कैशलेस उपचार योजनाओं की संदर्भ जानकारी। नवीनतम विवरण अपने नजदीकी सरकारी अस्पताल या pmjay.gov.in पर सत्यापित करें।",
+        "sch_desc": "कैशलेस उपचार योजनाओं की संदर्भ जानकारी। नवीनतम विवरण अपने नजदीकी सरकारी अस्पताल या abdm.gov.in पर सत्यापित करें।",
         "anc_title": "🤰 प्रसवपूर्व देखभाल (ANC) अनुसूची",
         "anc_desc": "संदर्भ अनुसूची — सार्वजनिक स्वास्थ्य दिशानिर्देशों पर आधारित। अपने स्थानीय PHC/CHC से पुष्टि करें।",
         "uip_title": "💉 सार्वजनिक टीकाकरण कार्यक्रम (UIP)",

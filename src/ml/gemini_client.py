@@ -390,26 +390,87 @@ def _query_gemini_facility_rest(
     return ""
 
 
-def _format_facility_ai_response_card(text: str, model_used: str, location_tag: str, lang: str) -> str:
-    """Format the raw Markdown from Gemini Flash into our clinical facility locator card."""
-    try:
-        import markdown
-        parsed_html = markdown.markdown(text, extensions=["extra", "nl2br"])
-    except Exception:
-        import re
-        lines = []
-        for l in text.splitlines():
-            l = html.escape(l)
-            l = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", l)
-            l = re.sub(r"\*(.*?)\*", r"<em>\1</em>", l)
-            if l.startswith("### "): lines.append(f"<h4 style='color:#0B2528;margin:10px 0 4px;'>{l[4:]}</h4>")
-            elif l.startswith("## "): lines.append(f"<h3 style='color:#0B2528;margin:12px 0 6px;'>{l[3:]}</h3>")
-            elif l.startswith("# "): lines.append(f"<h2 style='color:#0B2528;margin:14px 0 8px;'>{l[2:]}</h2>")
-            elif l.startswith("- ") or l.startswith("* "): lines.append(f"<li>{l[2:]}</li>")
-            else: lines.append(f"<p style='margin:4px 0;'>{l}</p>" if l.strip() else "<br/>")
-        parsed_html = "\n".join(lines)
+def _make_phone_numbers_clickable(html_text: str) -> str:
+    """Detect phone and helpline numbers in HTML and wrap them in interactive tel: links."""
+    import re
+    # Match standard Indian mobile / landline numbers (+91-9412568100, 0120-2327000, 8800444333, 05672-234244)
+    pattern_phone = re.compile(r'(?<!\d)(?:(?:\+?91[-\s]?)?[6-9]\d{9}|0\d{2,4}[-\s]?\d{6,8})(?!\d)')
+    
+    def repl_phone(match):
+        raw = match.group(0).strip()
+        clean = re.sub(r'[^\d+]', '', raw)
+        return f'<a href="tel:{clean}" style="color:#007A6C;background:#E6FBF7;border:1px solid #00D2B4;padding:3px 10px;border-radius:8px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin:3px 4px 3px 0;box-shadow:0 1px 2px rgba(0,0,0,0.05);" class="th-tel-link hover:underline"><span>{raw}</span> 📞 <span style="font-size:0.75rem;background:#00A892;color:#FFFFFF;padding:1px 6px;border-radius:4px;margin-left:2px;">Call</span></a>'
+    
+    return pattern_phone.sub(repl_phone, html_text)
 
-    badge_title = "✨ GEMINI FLASH SMART HEALTHCARE LOCATOR"
+
+def _format_facility_ai_response_card(text: str, model_used: str, location_tag: str, lang: str) -> str:
+    """Format the raw Markdown from Gemini Flash into our clinical facility locator card with Google Maps."""
+    import urllib.parse
+    import re
+    
+    current_hospital = ""
+    lines = []
+    
+    for raw_line in text.splitlines():
+        l = raw_line.strip()
+        if not l:
+            lines.append("<div style='height:6px;'></div>")
+            continue
+            
+        if l.startswith("---") or l.startswith("___"):
+            lines.append("<hr style='border:none; border-top:1px solid #E2F4F2; margin:16px 0;' />")
+            continue
+            
+        # Strip leading markdown header symbols and list symbols for number detection
+        clean_header_check = re.sub(r'^[#\*\-\s]+', '', l)
+        num_match = re.match(r"^(\d+)[\.\)]\s*(.+)$", clean_header_check)
+        
+        if num_match:
+            num = num_match.group(1)
+            raw_title = num_match.group(2).replace("**", "").replace("*", "").strip()
+            # Extract clean hospital name for maps
+            clean_name = re.sub(r'[\(\[\{].*?[\)\]\}]', '', raw_title)
+            clean_name = clean_name.replace('–', '').replace('-', '').strip()
+            current_hospital = clean_name
+            query_str = urllib.parse.quote_plus(f"{clean_name} {location_tag}".strip())
+            map_url = f"https://www.google.com/maps/search/?api=1&query={query_str}"
+            
+            # Exact pill button requested by user
+            map_btn = f'<a href="{map_url}" target="_blank" rel="noopener noreferrer" style="background:#00A892; color:#FFFFFF; font-weight:700; font-size:0.85rem; padding:6px 16px; border-radius:9999px; text-decoration:none; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(0,168,146,0.25);" class="th-map-btn hover:opacity-90"><span>Google Maps</span> 🗺️</a>'
+            
+            lines.append(
+                f"<div style='margin-top:22px; margin-bottom:12px; padding:10px 0 6px 0; border-bottom:2px solid #E0F5F2; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;'>"
+                f"<span style='font-size:1.18rem; color:#00A892; font-weight:800;'>{num}. {raw_title}</span>"
+                f"{map_btn}"
+                f"</div>"
+            )
+            continue
+            
+        # Convert markdown formatting in other lines
+        formatted = l
+        if formatted.startswith("* ") or formatted.startswith("- "):
+            formatted = formatted[2:].strip()
+            
+        formatted = html.escape(formatted)
+        formatted = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", formatted)
+        formatted = re.sub(r"\*(.*?)\*", r"<em>\1</em>", formatted)
+        
+        # Check for headings
+        if formatted.startswith("#### "):
+            lines.append(f"<h5 style='color:#0B2528;margin:12px 0 4px;font-weight:700;'>{formatted[5:]}</h5>")
+        elif formatted.startswith("### "):
+            lines.append(f"<h4 style='color:#0B2528;margin:14px 0 6px;font-weight:700;'>{formatted[4:]}</h4>")
+        elif formatted.startswith("## "):
+            lines.append(f"<h3 style='color:#0B2528;margin:18px 0 8px;font-weight:800;'>{formatted[3:]}</h3>")
+        elif formatted.startswith("# "):
+            lines.append(f"<h2 style='color:#0B2528;margin:22px 0 10px;font-weight:800;'>{formatted[2:]}</h2>")
+        else:
+            lines.append(f"<p style='margin:6px 0; line-height:1.8;'>{formatted}</p>")
+            
+    parsed_html = "\n".join(lines)
+    parsed_html = _make_phone_numbers_clickable(parsed_html)
+
     loc_display = f"📍 {location_tag}" if location_tag else "📍 Nearest Healthcare"
     disclaimer = (
         "हे एआय द्वारे शोधलेले जवळचे रुग्णालय मार्गदर्शन आहे. गंभीर आपत्कालीन परिस्थितीत त्वरित १०८ रुग्णवाहिका किंवा ११२ क्रमांकावर संपर्क साधा."
@@ -422,24 +483,60 @@ def _format_facility_ai_response_card(text: str, model_used: str, location_tag: 
     )
 
     card_html = f"""
-<div class="th-dx-card" style="border: 2px solid #00A892; box-shadow: 0 8px 26px rgba(0, 168, 146, 0.14); margin-bottom: 16px;">
-    <div class="th-dx-header" style="background: linear-gradient(135deg, #0B2528 0%, #007A6C 100%);">
+<div class="th-dx-card" style="border: 2px solid #00A892; box-shadow: 0 8px 26px rgba(0, 168, 146, 0.14); margin-bottom: 20px;">
+    <div class="th-dx-header" style="background: linear-gradient(135deg, #0B2528 0%, #007A6C 100%); padding: 14px 20px;">
         <div style="display:flex;align-items:center;gap:10px;">
             <span style="font-size:24px;">🏥</span>
             <div>
                 <strong style="font-size:1.02rem;color:#FFFFFF;display:block;">MahaArogya Smart Healthcare Locator</strong>
-                <span style="font-size:0.72rem;color:#E0F8F4;font-weight:700;letter-spacing:0.04em;">{badge_title}</span>
             </div>
         </div>
         <span style="font-size:0.75rem;background:rgba(255,255,255,0.22);color:#FFFFFF;padding:4px 12px;border-radius:999px;font-weight:700;">
             {loc_display}
         </span>
     </div>
-    <div class="th-dx-body" style="padding:22px 26px;color:#0B2528;font-size:0.94rem;line-height:1.65;">
+    <div class="th-dx-body" style="padding:22px 26px;color:#0B2528;font-size:0.95rem;line-height:1.85;">
         {parsed_html}
-        <div style="margin-top:18px;padding:12px 16px;background:#F0FAF8;border-left:4px solid #00A892;border-radius:8px;font-size:0.82rem;color:#234745;">
-            🚑 <strong>Emergency Response:</strong> Dial <strong>108</strong> (Ambulance) or <strong>112</strong> (National Helpline). Cashless treatment up to ₹5 Lakh under <strong>Ayushman Bharat PM-JAY</strong> at empaneled hospitals.<br/>
-            <span style="color:#52706D;font-size:0.78rem;margin-top:4px;display:block;">ℹ️ {disclaimer}</span>
+        <div style="margin-top:22px;padding:14px 18px;background:#F0FAF8;border-left:4px solid #00A892;border-radius:8px;font-size:0.84rem;color:#234745;line-height:1.65;">
+            🚑 <strong>Emergency Response:</strong> Dial <a href="tel:108" style="color:#007A6C;font-weight:bold;text-decoration:underline;">108</a> (Ambulance) or <a href="tel:112" style="color:#007A6C;font-weight:bold;text-decoration:underline;">112</a> (National Helpline). Cashless treatment up to ₹5 Lakh under <strong>Ayushman Bharat PM-JAY</strong> at empaneled hospitals.<br/>
+            <span style="color:#52706D;font-size:0.78rem;margin-top:6px;display:block;">ℹ️ {disclaimer}</span>
+        </div>
+    </div>
+</div>
+"""
+    return "\n".join(line.strip() for line in card_html.splitlines())
+
+    parsed_html = _make_phone_numbers_clickable(parsed_html)
+
+    loc_display = f"📍 {location_tag}" if location_tag else "📍 Nearest Healthcare"
+    disclaimer = (
+        "हे एआय द्वारे शोधलेले जवळचे रुग्णालय मार्गदर्शन आहे. गंभीर आपत्कालीन परिस्थितीत त्वरित १०८ रुग्णवाहिका किंवा ११२ क्रमांकावर संपर्क साधा."
+        if lang == "mr"
+        else (
+            "यह एआई द्वारा खोजा गया निकटतम अस्पताल मार्गदर्शन है। गंभीर आपातकाल में तुरंत 108 एम्बुलेंस या 112 डायल करें।"
+            if lang == "hi"
+            else "AI-powered nearest hospital locator. In a critical emergency, immediately dial 108 Ambulance or 112."
+        )
+    )
+
+    card_html = f"""
+<div class="th-dx-card" style="border: 2px solid #00A892; box-shadow: 0 8px 26px rgba(0, 168, 146, 0.14); margin-bottom: 20px;">
+    <div class="th-dx-header" style="background: linear-gradient(135deg, #0B2528 0%, #007A6C 100%); padding: 14px 20px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:24px;">🏥</span>
+            <div>
+                <strong style="font-size:1.02rem;color:#FFFFFF;display:block;">MahaArogya Smart Healthcare Locator</strong>
+            </div>
+        </div>
+        <span style="font-size:0.75rem;background:rgba(255,255,255,0.22);color:#FFFFFF;padding:4px 12px;border-radius:999px;font-weight:700;">
+            {loc_display}
+        </span>
+    </div>
+    <div class="th-dx-body" style="padding:22px 26px;color:#0B2528;font-size:0.95rem;line-height:1.85;">
+        {parsed_html}
+        <div style="margin-top:22px;padding:14px 18px;background:#F0FAF8;border-left:4px solid #00A892;border-radius:8px;font-size:0.84rem;color:#234745;line-height:1.65;">
+            🚑 <strong>Emergency Response:</strong> Dial <a href="tel:108" style="color:#007A6C;font-weight:bold;text-decoration:underline;">108</a> (Ambulance) or <a href="tel:112" style="color:#007A6C;font-weight:bold;text-decoration:underline;">112</a> (National Helpline). Cashless treatment up to ₹5 Lakh under <strong>Ayushman Bharat PM-JAY</strong> at empaneled hospitals.<br/>
+            <span style="color:#52706D;font-size:0.78rem;margin-top:6px;display:block;">ℹ️ {disclaimer}</span>
         </div>
     </div>
 </div>
@@ -468,6 +565,8 @@ def _format_ai_response_card(text: str, model_used: str, lang: str) -> str:
             elif l.startswith("- ") or l.startswith("* "): lines.append(f"<li>{l[2:]}</li>")
             else: lines.append(f"<p style='margin:4px 0;'>{l}</p>" if l.strip() else "<br/>")
         parsed_html = "\n".join(lines)
+
+    parsed_html = _make_phone_numbers_clickable(parsed_html)
 
     badge_title = "✨ GEMINI FLASH CLINICAL AI TRIAGE"
     disclaimer = (

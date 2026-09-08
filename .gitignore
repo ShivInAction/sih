@@ -14,3 +14,12 @@ __pycache__/
 # Streamlit
 .streamlit/credentials.toml
 .streamlit/secrets.toml
+
+# Node & Next.js
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+frontend/out/
+*.tsbuildinfo
+next-env.d.ts

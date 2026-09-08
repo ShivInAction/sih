@@ -793,10 +793,10 @@ def render_footer():
         </div>
         <div>
             <div class="th-footer-title" style="color:#00D2B4 !important;-webkit-text-fill-color:#00D2B4 !important;font-size:0.96rem;font-weight:800;letter-spacing:0.06em;margin-bottom:14px;">Schemes & Portals</div>
-            <a href="https://www.jeevandayee.gov.in" target="_blank" class="th-ft-scheme" style="color:#E0F8F4 !important;-webkit-text-fill-color:#E0F8F4 !important;font-weight:600;">🌐 MJPJAY Portal (₹5L)</a>
-            <a href="https://pmjay.gov.in" target="_blank" class="th-ft-scheme" style="color:#E0F8F4 !important;-webkit-text-fill-color:#E0F8F4 !important;font-weight:600;">🌐 Ayushman Bharat (PM-JAY)</a>
-            <a href="https://esanjeevani.in" target="_blank" class="th-ft-scheme" style="color:#E0F8F4 !important;-webkit-text-fill-color:#E0F8F4 !important;font-weight:600;">🩺 eSanjeevani Telemedicine</a>
-            <a href="https://abha.abdm.gov.in" target="_blank" class="th-ft-scheme" style="color:#E0F8F4 !important;-webkit-text-fill-color:#E0F8F4 !important;font-weight:600;">🪪 ABHA Digital Health ID</a>
+            <a href="https://abdm.gov.in/" target="_blank" class="th-ft-scheme" style="color:#E0F8F4 !important;-webkit-text-fill-color:#E0F8F4 !important;font-weight:600;">🌐 MJPJAY Portal</a>
+            <a href="https://abdm.gov.in/" target="_blank" class="th-ft-scheme" style="color:#E0F8F4 !important;-webkit-text-fill-color:#E0F8F4 !important;font-weight:600;">🌐 Ayushman Bharat (PM-JAY)</a>
+            <a href="https://esanjeevani.mohfw.gov.in/#/" target="_blank" class="th-ft-scheme" style="color:#E0F8F4 !important;-webkit-text-fill-color:#E0F8F4 !important;font-weight:600;">🩺 eSanjeevani Telemedicine</a>
+            <a href="https://abdm.gov.in/" target="_blank" class="th-ft-scheme" style="color:#E0F8F4 !important;-webkit-text-fill-color:#E0F8F4 !important;font-weight:600;">🪪 ABHA Digital Health ID (ABDM)</a>
             <a href="https://janaushadhi.gov.in" target="_blank" class="th-ft-scheme" style="color:#E0F8F4 !important;-webkit-text-fill-color:#E0F8F4 !important;font-weight:600;">💊 PM Jan Aushadhi Kendra</a>
         </div>
         <div>
