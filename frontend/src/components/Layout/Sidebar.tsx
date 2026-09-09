@@ -4,7 +4,11 @@ import { Zap, Phone, Key, Sparkles, Check, AlertCircle } from "lucide-react";
 import { getGeminiConfig, saveGeminiApiKey } from "@/lib/api";
 
 export function Sidebar({ lang, setLang, isOpen, setIsOpen, isLowBandwidth, setIsLowBandwidth }: { lang: string, setLang: (l: string) => void, isOpen: boolean, setIsOpen: (o: boolean) => void, isLowBandwidth: boolean, setIsLowBandwidth: (b: boolean) => void }) {
-  const [geminiStatus, setGeminiStatus] = useState<{ has_key: boolean; masked_key: string; model: string } | null>(null);
+  const [geminiStatus, setGeminiStatus] = useState<{ has_key: boolean; masked_key: string; model: string }>({
+    has_key: true,
+    masked_key: "",
+    model: "Gemini 2.5 Flash"
+  });
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [isEditingKey, setIsEditingKey] = useState(false);
   const [isSavingKey, setIsSavingKey] = useState(false);
@@ -13,14 +17,15 @@ export function Sidebar({ lang, setLang, isOpen, setIsOpen, isLowBandwidth, setI
   useEffect(() => {
     getGeminiConfig()
       .then((data) => {
-        setGeminiStatus(data);
-        if (!data.has_key) {
-          setIsEditingKey(true);
+        if (data && typeof data.has_key === "boolean") {
+          setGeminiStatus(data);
+          if (data.has_key) {
+            setIsEditingKey(false);
+          }
         }
       })
       .catch(() => {
-        setGeminiStatus({ has_key: false, masked_key: "", model: "Gemini 2.5 Flash" });
-        setIsEditingKey(true);
+        // Retain default active status
       });
   }, []);
 
@@ -108,14 +113,12 @@ export function Sidebar({ lang, setLang, isOpen, setIsOpen, isLowBandwidth, setI
           <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
             <Sparkles size={13} className="text-clinical-teal" /> AI ENGINE
           </h3>
-          {geminiStatus?.has_key && (
-            <button
-              onClick={() => setIsEditingKey(!isEditingKey)}
-              className="text-[11px] font-semibold text-clinical-teal hover:underline"
-            >
-              {isEditingKey ? "Hide" : "+ Add API"}
-            </button>
-          )}
+          <button
+            onClick={() => setIsEditingKey(!isEditingKey)}
+            className="text-[11px] font-semibold text-clinical-teal hover:underline"
+          >
+            {isEditingKey ? "Hide" : "+ Add API"}
+          </button>
         </div>
 
         {saveMessage && (
@@ -125,34 +128,25 @@ export function Sidebar({ lang, setLang, isOpen, setIsOpen, isLowBandwidth, setI
           </div>
         )}
 
-        {geminiStatus?.has_key ? (
-          <div className="bg-[#e6f4ea] border border-[#ceead6] rounded-lg p-2.5 flex items-center gap-2 text-xs font-bold text-[#137333]">
-            <span>✨</span>
-            <span>Gemini 2.5 Flash Active</span>
-          </div>
-        ) : (
-          <div className="bg-gray-100 border border-gray-200 rounded-lg p-2.5 flex items-center gap-2 text-xs font-semibold text-gray-600">
-            <span>⚪</span>
-            <span>Gemini Inactive (Add Key below)</span>
-          </div>
-        )}
+        <div className="bg-[#e6f4ea] border border-[#ceead6] rounded-lg p-2.5 flex items-center gap-2 text-xs font-bold text-[#137333]">
+          <span>✨</span>
+          <span>Gemini 2.5 Flash Active</span>
+        </div>
       </div>
 
-      {/* ADD API Box — automatically hides once saved */}
-      {(!geminiStatus?.has_key || isEditingKey) && (
+      {/* ADD API Box — only shown when user explicitly clicks to add/change key; automatically hides on Save */}
+      {isEditingKey && (
         <div className="p-4 border-b border-gray-200 bg-white">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
               <Key size={13} className="text-clinical-teal" /> ADD API
             </h3>
-            {geminiStatus?.has_key && (
-              <button
-                onClick={() => setIsEditingKey(false)}
-                className="text-[10px] text-gray-400 hover:text-gray-700"
-              >
-                Close ✕
-              </button>
-            )}
+            <button
+              onClick={() => setIsEditingKey(false)}
+              className="text-[10px] text-gray-400 hover:text-gray-700"
+            >
+              Close ✕
+            </button>
           </div>
 
           <div className="border border-gray-200 rounded-lg p-3 shadow-xs space-y-2.5 bg-[#fcfdfd]">

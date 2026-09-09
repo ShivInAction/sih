@@ -11,6 +11,9 @@ from contextlib import asynccontextmanager
 from functools import lru_cache
 from typing import Optional
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import pandas as pd
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
