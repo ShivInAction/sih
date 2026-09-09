@@ -1,5 +1,8 @@
-// API client to interact with the FastAPI backend running on port 8000
+// API client to interact with the FastAPI backend
 const getApiBase = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
   if (typeof window !== "undefined") {
     return `http://${window.location.hostname}:8000/api`;
   }

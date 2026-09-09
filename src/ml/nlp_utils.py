@@ -168,7 +168,8 @@ def extract_location(query_en: str, original_query: str) -> str:
 
     # 3. Known cities, NCR landmarks & districts dictionary lookup
     known_locs = [
-        ("greater noida", "Greater Noida"), ("pari chowk", "Pari Chowk"),
+        ("greater noida", "Greater Noida"), ("pari chowk", "Pari Chowk"), ("pari chauk", "Pari Chowk"),
+        ("gautam buddha nagar", "Gautam Buddha Nagar"), ("gautam budh nagar", "Gautam Buddha Nagar"),
         ("noida", "Noida"), ("gurugram", "Gurugram"), ("gurgaon", "Gurgaon"),
         ("delhi", "Delhi"), ("new delhi", "New Delhi"), ("ghaziabad", "Ghaziabad"),
         ("faridabad", "Faridabad"), ("meerut", "Meerut"), ("agra", "Agra"),
@@ -239,7 +240,19 @@ def extract_location(query_en: str, original_query: str) -> str:
     if matched_parts:
         return ", ".join(matched_parts[:2])
 
-    # 4. Generic single patterns: e.g. 'X में हूं', 'at X'
+    # 4. Hinglish location patterns: e.g. 'Pari Chauk ke aaspaas', 'Sector 62 ke paas hospital'
+    m_hinglish = re.search(
+        r'([A-Za-z0-9\s\-]{2,35}?)\s+(?:ke\s+)?(?:aas\s*paas|paas|me|mein|se|pe)\s+(?:ke\s+)?(?:hospital|clinic|doctor|dawa|medical|ilaj|swasthya|aarogya|centre|center)',
+        combined_lower
+    )
+    if m_hinglish:
+        cand = m_hinglish.group(1).strip()
+        cand = re.sub(r'^(hum|main|mujhe|hamlog|abhi)\s+', '', cand).strip()
+        if cand and len(cand) >= 2 and len(cand) <= 35:
+            cand = re.sub(r'\bchauk\b', 'Chowk', cand, flags=re.I)
+            return cand.title()
+
+    # 5. Generic single patterns: e.g. 'X में हूं', 'at X'
     m_single_hi = re.search(
         r'(?:अभी\s*मैं|मैं|हम)?\s*([ऀ-ॿA-Za-z0-9\s\-]{2,30}?)\s*(?:में\s*हूं|में\s*रहते|के\s*पास|जवळ)',
         orig

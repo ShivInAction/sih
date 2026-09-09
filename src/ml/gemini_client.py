@@ -188,13 +188,12 @@ Provide a VERY SHORT, CONCISE, and direct clinical triage answer in {response_la
 
     candidate_models = [
         DEFAULT_GEMINI_MODEL,
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro",
-        "gemini-flash-latest",
-        "gemini-3.5-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-flash-lite-latest",
         "gemini-3.7-flash",
+        "gemini-3.5-flash",
         FALLBACK_GEMINI_MODEL,
     ]
     seen = set()
@@ -243,7 +242,7 @@ def _query_gemini_rest(api_key: str, user_prompt: str, system_instruction: str, 
     }
 
     if not models_to_try:
-        models_to_try = [DEFAULT_GEMINI_MODEL, "gemini-3.5-flash", "gemini-3.6-flash"]
+        models_to_try = [DEFAULT_GEMINI_MODEL, "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-lite-latest"]
 
     for model_name in models_to_try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
@@ -312,13 +311,12 @@ Provide the nearest hospitals, emergency fever facilities, and navigation detail
 
     candidate_models = [
         DEFAULT_GEMINI_MODEL,
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro",
-        "gemini-flash-latest",
-        "gemini-3.5-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-flash-lite-latest",
         "gemini-3.7-flash",
+        "gemini-3.5-flash",
         FALLBACK_GEMINI_MODEL,
     ]
     seen = set()
@@ -374,7 +372,7 @@ def _query_gemini_facility_rest(
     }
 
     if not models_to_try:
-        models_to_try = [DEFAULT_GEMINI_MODEL, "gemini-3.5-flash", "gemini-3.6-flash"]
+        models_to_try = [DEFAULT_GEMINI_MODEL, "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-lite-latest"]
 
     for model_name in models_to_try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
